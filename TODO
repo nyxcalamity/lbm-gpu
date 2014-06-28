@@ -1,0 +1,11 @@
+TODO:
+- reorganize gpu files
+- refactor helper functions
+- move boundary treatment to gpu
+- move field initialization to gpu
+- move computation loop to gpu 
+- exclude memory allocation from MLUPS computation
+- utilize shared memory
+- utilize memory access coalescing
+- optimize cuda code
+- introduce complex geometries

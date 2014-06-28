@@ -1,0 +1,4 @@
+Final project: Lattice-Boltzmann method implementation utilizing CUDA GPGPU interface
+-------------------------------------------------------------------------------------
+- we will start with a simple implementation without arbitrary geometries and scale
+the code to facilitate simulation of the latter
