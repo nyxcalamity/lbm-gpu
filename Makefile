@@ -10,7 +10,7 @@ SOURCES_CU=$(SRC_DIR)/collision_gpu.cu $(SRC_DIR)/streaming_gpu.cu $(SRC_DIR)/bo
 EXECUTABLE=$(BUILD_DIR)/lbm-sim
 
 #cuda settings
-COMPUTE_CAPABILITY=30
+COMPUTE_CAPABILITY=20
 # --------------------------------------------------------------------------------------------------
 #Compiler command
 CC=g++
