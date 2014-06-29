@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
 	printf("Average MLUPS: %f\n", mlups_sum/(t+1));
 
 	if (VERBOSE)
-		WriteField(collide_field, "img/collide-field", t, xlength, gpu_enabled);
+		WriteField(collide_field, "img/collide-field", t, xlength, gpu_enabled||gpu_streaming||gpu_collision||gpu_boundaries);
 
 	/* Free memory */
 	free(collide_field);
