@@ -42,23 +42,18 @@ int main(int argc, char *argv[]) {
 
 	for (t = 0; t < timesteps; t++) {
 		mlups_time = clock();
-		/* Copy pdfs from neighbouring cells into collide field */
-		if (gpu_enabled || gpu_streaming)
-			DoStreamingGpu(collide_field, stream_field, flag_field, xlength);
-		else
+		if (gpu_enabled || gpu_streaming || gpu_collision || gpu_boundaries)
+			DoIteration(collide_field, stream_field, flag_field, tau, wall_velocity, xlength);
+		else {
+			/* Copy pdfs from neighbouring cells into collide field */
 			DoStreaming(collide_field, stream_field, flag_field, xlength);
-		/* Perform the swapping of collide and stream fields */
-		swap = collide_field; collide_field = stream_field; stream_field = swap;
-		/* Compute post collision distributions */
-		if (gpu_enabled || gpu_collision)
-			DoCollisionGpu(collide_field, flag_field, tau, xlength);
-		else
+			/* Perform the swapping of collide and stream fields */
+			swap = collide_field; collide_field = stream_field; stream_field = swap;
+			/* Compute post collision distributions */
 			DoCollision(collide_field, flag_field, tau, xlength);
-		/* Treat boundaries */
-		if (gpu_enabled || gpu_boundaries)
-			TreatBoundaryGpu(collide_field, flag_field, wall_velocity, xlength);
-		else
+			/* Treat boundaries */
 			TreatBoundary(collide_field, flag_field, wall_velocity, xlength);
+		}
 		/* Print out the MLUPS value */
 		mlups_time = clock()-mlups_time;
 		printf("Time step: #%d\n", t);
