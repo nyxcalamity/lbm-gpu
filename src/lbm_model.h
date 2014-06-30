@@ -13,8 +13,8 @@
 #define MOVING_WALL 2
 //computation enhancing values
 #define EPS 0.05
-static const float C_S_POW2_INV = 3.0;
-static const float C_S_POW4_INV = 9.0;
+#define C_S_POW2_INV 3.0
+#define C_S_POW4_INV 9.0
 //reference values, not used in actual computation
 #define SQRT3 1.73205080756887729
 static const float C_S = 1.0/SQRT3;

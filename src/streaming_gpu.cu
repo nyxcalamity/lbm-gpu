@@ -26,8 +26,7 @@ __global__ void DoStreaming(float *stream_field_d, float *collide_field_d){
 			ny=y-LATTICE_VELOCITIES_D[i][1];
 			nz=z-LATTICE_VELOCITIES_D[i][2];
 
-			stream_field_d[Q_LBM*idx+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
+			stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
 		}
 	}
 }

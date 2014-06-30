@@ -50,8 +50,7 @@ __device__ void ComputeVelocityGpu(float *current_cell, float *density, float *v
  * cell from density and velocity and stores the results in feq.
  */
 __device__ void ComputeFeqGpu(float *density, float *velocity, float *feq){
-    int i;
-    float s1, s2, s3;
+    int i; float s1, s2, s3;
     for(i=0;i<Q_LBM;i++){
         s1 = LATTICE_VELOCITIES_D[i][0]*velocity[0]+LATTICE_VELOCITIES_D[i][1]*velocity[1]+
         		LATTICE_VELOCITIES_D[i][2]*velocity[2];
@@ -87,21 +86,38 @@ __device__ void ComputePostCollisionDistributionsGpu(float *current_cell, float 
  * Performs the actual collision computation
  */
 __global__ void DoColision(float *collide_field_d){
-	//	__syncthreads(); to use after reading data into shared memory
-	float density, velocity[D_LBM], feq[Q_LBM], *currentCell;
+	float density, velocity[D_LBM], feq[Q_LBM], *current_cell_s;
+	__shared__ float collide_field_s[BLOCK_SIZE*BLOCK_SIZE*BLOCK_SIZE*Q_LBM];
+	//TODO:can be optimized using BLOCK_SIZE constant
 	int x = 1+threadIdx.x+blockIdx.x*blockDim.x;
 	int y = 1+threadIdx.y+blockIdx.y*blockDim.y;
 	int z = 1+threadIdx.z+blockIdx.z*blockDim.z;
-	int step = xlength_d+2;
-	int idx = x+y*step+z*step*step;
+	int idx_block = threadIdx.x+threadIdx.y*blockDim.x+threadIdx.z*blockDim.x*blockDim.y;
+	int step = xlength_d+2, i;
+	int idx_domain = x+y*step+z*step*step;
 
 	//check that indices are within the bounds since there could be more threads than needed
 	if (x<(step-1) && y<(step-1) && z<(step-1)){
-		currentCell=&collide_field_d[Q_LBM*idx];
-		ComputeDensityGpu(currentCell,&density);
-		ComputeVelocityGpu(currentCell,&density,velocity);
+		//copy current cell values into shared memory
+		for(i=0;i<Q_LBM;i++)
+			collide_field_s[Q_LBM*idx_block+i]=collide_field_d[Q_LBM*idx_domain+i];
+
+		//TODO:might be redundant since each cell is independent
+		__syncthreads();
+
+		current_cell_s = &collide_field_s[Q_LBM*idx_block];
+		//perform computation
+		ComputeDensityGpu(current_cell_s,&density);
+		ComputeVelocityGpu(current_cell_s,&density,velocity);
 		ComputeFeqGpu(&density,velocity,feq);
-		ComputePostCollisionDistributionsGpu(currentCell,feq);
+		ComputePostCollisionDistributionsGpu(current_cell_s,feq);
+
+		//copy data back
+		for(i=0;i<Q_LBM;i++)
+			collide_field_d[Q_LBM*idx_domain+i]=collide_field_s[Q_LBM*idx_block+i];
+
+		//TODO:might be redundant since each cell is independent
+		__syncthreads();
 	}
 }
 

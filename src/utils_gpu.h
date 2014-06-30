@@ -3,14 +3,6 @@
 
 #include <stdio.h>
 
-//simulation parameters
-#define D_LBM 3
-#define Q_LBM 19
-//arbitrary cell identifiers
-#define FLUID 0
-#define NO_SLIP 1
-#define MOVING_WALL 2
-
 //restricts 3D blocks to have 512 threads (limits: 512 CC<2.x; 1024 CC>2.x)
 #define BLOCK_SIZE 8
 

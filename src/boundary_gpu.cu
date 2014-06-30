@@ -1,19 +1,14 @@
 #include "boundary_gpu.h"
 #include "utils_gpu.h"
 #include "utils.h"
-
-// TODO: put it in one file
-//computation enhancing values
-#define EPS 0.05
-#define C_S_POW2_INV 3.0
-#define C_S_POW4_INV 9.0
+#include "lbm_model.h"
 
 
 __constant__ int xlength_d;
-__constant__ float wall_velocity_d[3];
+__constant__ float wall_velocity_d[D_LBM];
 
 
-// TODO: rename in ComputeDensityGpu
+// TODO: rename to ComputeDensityGpu
 __device__ void ComputeDensityGpu2(float *current_cell, float *density){
     int i; *density=0;
     for(i=0;i<Q_LBM;i++)
@@ -71,13 +66,11 @@ __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 
 
 void TreatBoundaryGpu(float *collide_field, int *flag_field, float *wall_velocity, int xlength){
-	float *collide_field_d=NULL;
-	int *flag_field_d=NULL;
-	int num_cells;
+	float *collide_field_d=NULL, data[3];
+	int *flag_field_d=NULL, num_cells;
 	size_t size;
-	float data[3];
 
-	for(int i=0;i<3;i++)
+	for(int i=0;i<D_LBM;i++)
 		data[i]=wall_velocity[i];
 
 	cudaMemcpyToSymbol(wall_velocity_d, data, sizeof(data), 0, cudaMemcpyHostToDevice);

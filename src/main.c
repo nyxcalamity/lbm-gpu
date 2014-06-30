@@ -65,6 +65,8 @@ int main(int argc, char *argv[]) {
 		mlups_time = clock()-mlups_time;
 		printf("Time step: #%d\n", t);
 		mlups_sum += num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC);
+		if(VERBOSE)
+			printf("MLUPS: %f\n", num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC));
 		/* Print out vtk output if needed */
 		if (t % timesteps_per_plotting == 0)
 			WriteVtkOutput(collide_field, flag_field, "img/lbm-img", t, xlength);
