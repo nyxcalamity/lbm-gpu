@@ -9,11 +9,9 @@
 #include "lbm_model.h"
 #include "initialization.h"
 #include "streaming.h"
-#include "streaming_gpu.h"
 #include "collision.h"
-#include "collision_gpu.h"
 #include "boundary.h"
-#include "boundary_gpu.h"
+#include "lbm_solver_gpu.h"
 #include "visualization.h"
 #include "utils.h"
 
