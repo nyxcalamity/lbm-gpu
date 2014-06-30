@@ -87,7 +87,7 @@ void TreatBoundaryGpu(float *collide_field, int *flag_field, float *wall_velocit
 	//define grid structure
 	//NOTE:redundant threads for boundary cells are not accounted for
 	dim3 block(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-	dim3 grid((xlength+block.x-1)/block.x, (xlength+block.y-1)/block.y, (xlength+block.z-1)/block.z);
+	dim3 grid((xlength+2+block.x-1)/block.x, (xlength+2+block.y-1)/block.y, (xlength+2+block.z-1)/block.z);
 
 	TreatBoundary<<<grid,block>>>(collide_field_d, flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
