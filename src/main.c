@@ -8,6 +8,7 @@
 
 #include "lbm_model.h"
 #include "initialization.h"
+#include "initialization_gpu.h"
 #include "streaming.h"
 #include "collision.h"
 #include "boundary.h"
@@ -18,6 +19,8 @@
 int main(int argc, char *argv[]) {
 	float *collide_field=NULL, *stream_field=NULL, *swap=NULL, tau, wall_velocity[D_LBM], num_cells,
 			mlups_sum;
+	float *collide_field_d=NULL, *stream_field_d=NULL;
+	int *flag_field_d=NULL;
 	int *flag_field=NULL, xlength, t, timesteps, timesteps_per_plotting,
 			gpu_enabled, gpu_streaming, gpu_collision, gpu_boundaries;
 	clock_t mlups_time;
@@ -39,11 +42,12 @@ int main(int argc, char *argv[]) {
 	stream_field = (float*) malloc(field_size);
 	flag_field = (int*) malloc(num_cells*sizeof(int));
 	InitialiseFields(collide_field, stream_field, flag_field, xlength);
+	InitialiseDeviceFields(collide_field, stream_field, flag_field, xlength, &collide_field_d, &stream_field_d, &flag_field_d);
 
 	for (t = 0; t < timesteps; t++) {
 		mlups_time = clock();
 		if (gpu_enabled || gpu_streaming || gpu_collision || gpu_boundaries)
-			DoIteration(collide_field, stream_field, flag_field, tau, wall_velocity, xlength);
+			DoIteration(collide_field, stream_field, flag_field, tau, wall_velocity, xlength,collide_field_d, stream_field_d, flag_field_d);
 		else {
 			/* Copy pdfs from neighbouring cells into collide field */
 			DoStreaming(collide_field, stream_field, flag_field, xlength);
@@ -75,6 +79,8 @@ int main(int argc, char *argv[]) {
 	free(collide_field);
 	free(stream_field);
 	free(flag_field);
+
+	FreeDeviceFields(&collide_field_d, &stream_field_d, &flag_field_d);
 
 	printf("Simulation complete.\n");
 	return 0;

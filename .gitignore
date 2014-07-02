@@ -6,3 +6,4 @@ img
 lbm-sim
 *.out
 output
+.settings*
