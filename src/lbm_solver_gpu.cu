@@ -289,7 +289,7 @@ __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 
 void DoIteration(float *collide_field, float *stream_field, int *flag_field, float tau,
 		float *wall_velocity, int xlength,
-		float *collide_field_d, float *stream_field_d,int *flag_field_d){
+		float **collide_field_d, float **stream_field_d,int **flag_field_d){
 //	float *collide_field_d=NULL, *stream_field_d=NULL,
 	float *swap=NULL, data[3];
 //	int *flag_field_d=NULL,
@@ -320,24 +320,24 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	dim3 grid((xlength+2+block.x-1)/block.x, (xlength+2+block.y-1)/block.y, (xlength+2+block.z-1)/block.z);
 
 	//perform streaming
-	DoStreaming<<<grid,block>>>(stream_field_d, collide_field_d, flag_field_d);
+	DoStreaming<<<grid,block>>>(*stream_field_d, *collide_field_d, *flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
 	cudaErrorCheck(cudaThreadSynchronize());
 
 	/* Perform the swapping of collide and stream fields */
-	swap=collide_field_d; collide_field_d=stream_field_d; stream_field_d=swap;
+	swap=*collide_field_d; *collide_field_d=*stream_field_d; *stream_field_d=swap;
 
 	//perform collision
-	DoColision<<<grid,block>>>(collide_field_d, flag_field_d);
+	DoColision<<<grid,block>>>(*collide_field_d, *flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
 	cudaErrorCheck(cudaThreadSynchronize());
 
-	TreatBoundary<<<grid,block>>>(collide_field_d, flag_field_d);
+	TreatBoundary<<<grid,block>>>(*collide_field_d, *flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
 
 	//copy data back to host
-	cudaErrorCheck(cudaMemcpy(collide_field, collide_field_d, computational_field_size, cudaMemcpyDeviceToHost));
-	cudaErrorCheck(cudaMemcpy(stream_field, stream_field_d, computational_field_size, cudaMemcpyDeviceToHost));
+	cudaErrorCheck(cudaMemcpy(collide_field, *collide_field_d, computational_field_size, cudaMemcpyDeviceToHost));
+	cudaErrorCheck(cudaMemcpy(stream_field, *stream_field_d, computational_field_size, cudaMemcpyDeviceToHost));
 
 	//free device memory
 //	cudaErrorCheck(cudaFree(collide_field_d));

@@ -9,4 +9,6 @@ void InitialiseDeviceFields(float *collide_field, float *stream_field,int *flag_
 /* Free GPU memory */
 void FreeDeviceFields(float **collide_field_d, float **stream_field_d,int **flag_field_d);
 
+void CheckGPU(float *collide_field, float *stream_field,int *flag_field, int xlength, float *collide_field_d, float *stream_field_d,int *flag_field_d);
+
 #endif
