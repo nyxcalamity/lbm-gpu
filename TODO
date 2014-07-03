@@ -1,13 +1,12 @@
 TODO:
 - reorganize gpu files
-- refactor helper functions
-- move field initialization to gpu
 - move computation loop to gpu 
 - exclude memory allocation from MLUPS computation
-- optimize cuda code
 
-
+URGENT:
 - decrease the number of brances (for loops, ifs, etc)
 - merge all kernels into just one kernel
 - outsource resource allocation to initialize fields
 - get rid of 2nd array
+
+- check to see if there is a pattern is the numbers that are different, could be a bug, could be a float round off, its an open question
