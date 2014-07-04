@@ -251,39 +251,217 @@ __global__ void DoStreaming(float *stream_field_d, float *collide_field_d, int *
 }
 
 
+__device__ int isEdge(const int x, const int y, const int z) {
+	return (x==0 && y==0) ||
+			(x==0 && y==xlength_d+1) ||
+			(x==0 && z==0) ||
+			(x==0 && z==xlength_d+1) ||
+			(x==xlength_d+1 && y==0) ||
+			(x==xlength_d+1 && y==xlength_d+1) ||
+			(x==xlength_d+1 && z==0) ||
+			(x==xlength_d+1 && z==xlength_d+1) ||
+			(y==0 && z==0) ||
+			(y==0 && z==xlength_d+1) ||
+			(y==xlength_d+1 && z==0) ||
+			(y==xlength_d+1 && z==xlength_d+1);
+}
+
 __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
 	int y = threadIdx.y+blockIdx.y*blockDim.y;
 	int z = threadIdx.z+blockIdx.z*blockDim.z;
     int nx,ny,nz,i,step=xlength_d+2, idx=x+y*step+z*step*step;
     float density,dot_prod;
+    int boundary_side=0, boundary_idx = 100500;
 
-    if (idx<num_cells_d && flag_field_d[idx]!=FLUID){
-		for(i=0;i<Q_LBM;i++){
+    if(idx<num_cells_d) {
+		if(flag_field_d[idx] == BOTTOM_BOUNDARY) {
+			boundary_side = BOTTOM_BOUNDARY;
+			boundary_idx = BOTTOM_BOUNDARY_IDX;
+		} else if (flag_field_d[idx] == LEFT_BOUNDARY) {
+			boundary_side = LEFT_BOUNDARY;
+			boundary_idx = LEFT_BOUNDARY_IDX;
+		} else if (flag_field_d[idx] == RIGHT_BOUNDARY) {
+			boundary_side = RIGHT_BOUNDARY;
+			boundary_idx = RIGHT_BOUNDARY_IDX;
+		} else if (flag_field_d[idx] == BACK_BOUNDARY) {
+			boundary_side = BACK_BOUNDARY;
+			boundary_idx = BACK_BOUNDARY_IDX;
+		} else if (flag_field_d[idx] == FRONT_BOUNDARY) {
+			boundary_side = FRONT_BOUNDARY;
+			boundary_idx = FRONT_BOUNDARY_IDX;
+		} else if (flag_field_d[idx] == LEFT_BOTTOM_EDGE) {
+			boundary_side = LEFT_BOTTOM_EDGE;
+			boundary_idx = 13;
+		} else if (flag_field_d[idx] == RIGHT_BOTTOM_EDGE) {
+			boundary_side = RIGHT_BOTTOM_EDGE;
+			boundary_idx = 11;
+		} else if (flag_field_d[idx] == BACK_BOTTOM_EDGE) {
+			boundary_side = BACK_BOTTOM_EDGE;
+			boundary_idx = 18;
+		} else if (flag_field_d[idx] == FRONT_BOTTOM_EDGE) {
+			boundary_side = FRONT_BOTTOM_EDGE;
+			boundary_idx = 4;
+		} else if (flag_field_d[idx] == LEFT_BACK_EDGE) {
+			boundary_side = LEFT_BACK_EDGE;
+			boundary_idx = 17;
+		} else if (flag_field_d[idx] == LEFT_FRONT_EDGE) {
+			boundary_side = LEFT_FRONT_EDGE;
+			boundary_idx = 3;
+		} else if (flag_field_d[idx] == RIGHT_BACK_EDGE) {
+			boundary_side = RIGHT_BACK_EDGE;
+			boundary_idx = 15;
+		} else if (flag_field_d[idx] == RIGHT_FRONT_EDGE) {
+			boundary_side = RIGHT_FRONT_EDGE;
+			boundary_idx = 1;
+		} else if (flag_field_d[idx] == LEFT_UPPER_EDGE) {
+			boundary_side = LEFT_UPPER_EDGE;
+			boundary_idx = 7;
+		} else if (flag_field_d[idx] == RIGHT_UPPER_EDGE) {
+			boundary_side = RIGHT_UPPER_EDGE;
+			boundary_idx = 5;
+		} else if (flag_field_d[idx] == BACK_UPPER_EDGE) {
+			boundary_side = BACK_UPPER_EDGE;
+			boundary_idx = 14;
+		} else if (flag_field_d[idx] == FRONT_UPPER_EDGE) {
+			boundary_side = FRONT_UPPER_EDGE;
+			boundary_idx = 0;
+		} else if (flag_field_d[idx] == TOP_BOUNDARY) {
+			boundary_side = TOP_BOUNDARY;
+			boundary_idx = TOP_BOUNDARY_IDX;
+		}
+
+		if( boundary_side==LEFT_BOUNDARY || boundary_side==RIGHT_BOUNDARY ||
+				boundary_side==BOTTOM_BOUNDARY ||
+				boundary_side==BACK_BOUNDARY || boundary_side==FRONT_BOUNDARY) {
+			i = treat_boundary_indeces[boundary_idx][0];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
-
-			/* We don't need the values outside of our extended domain */
-			if(0<nx && nx<step-1 && 0<ny && ny<step-1 && 0<nz && nz<step-1){
-				if (flag_field_d[idx]==MOVING_WALL){
-					/* Compute density in the neighbour cell */
-					ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
-					/* Compute dot product */
-					dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
-							LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
-							LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
-					/* Assign the boudary cell value */
-					collide_field_d[Q_LBM*(idx)+i]=
-							collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
-							2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
-				}else if(flag_field_d[idx]==NO_SLIP){
-					collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
-							collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
-				}
-			}
-		}
-    }
+			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
+			i = treat_boundary_indeces[boundary_idx][1];
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
+			i = treat_boundary_indeces[boundary_idx][2];
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
+			i = treat_boundary_indeces[boundary_idx][3];
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
+			i = treat_boundary_indeces[boundary_idx][4];
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
+		} else if (boundary_side == LEFT_BOTTOM_EDGE || boundary_side == RIGHT_BOTTOM_EDGE ||
+				boundary_side == BACK_BOTTOM_EDGE || boundary_side == FRONT_BOTTOM_EDGE ||
+				boundary_side == LEFT_BACK_EDGE || boundary_side == LEFT_FRONT_EDGE ||
+				boundary_side == RIGHT_BACK_EDGE || boundary_side == RIGHT_FRONT_EDGE) {
+			nx=x+LATTICE_VELOCITIES_D[boundary_idx][0];
+			ny=y+LATTICE_VELOCITIES_D[boundary_idx][1];
+			nz=z+LATTICE_VELOCITIES_D[boundary_idx][2];
+			collide_field_d[Q_LBM*(x+y*step+z*step*step)+boundary_idx]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(boundary_idx)];
+		} else if(boundary_side == LEFT_UPPER_EDGE || boundary_side == RIGHT_UPPER_EDGE ||
+				boundary_side == BACK_UPPER_EDGE || boundary_side == FRONT_UPPER_EDGE) {
+			i = boundary_idx;
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			/* Compute density in the neighbour cell */
+			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
+			/* Compute dot product */
+			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
+					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
+					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
+			/* Assign the boudary cell value */
+			collide_field_d[Q_LBM*(idx)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
+		} else if(boundary_side == TOP_BOUNDARY) {
+			i = treat_boundary_indeces[boundary_idx][0];
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			/* Compute density in the neighbour cell */
+			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
+			/* Compute dot product */
+			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
+					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
+					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
+			/* Assign the boudary cell value */
+			collide_field_d[Q_LBM*(idx)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
+			i = treat_boundary_indeces[boundary_idx][1];
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			/* Compute density in the neighbour cell */
+			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
+			/* Compute dot product */
+			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
+					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
+					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
+			/* Assign the boudary cell value */
+			collide_field_d[Q_LBM*(idx)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
+			i = treat_boundary_indeces[boundary_idx][2];
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			/* Compute density in the neighbour cell */
+			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
+			/* Compute dot product */
+			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
+					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
+					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
+			/* Assign the boudary cell value */
+			collide_field_d[Q_LBM*(idx)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
+			i = treat_boundary_indeces[boundary_idx][3];
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			/* Compute density in the neighbour cell */
+			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
+			/* Compute dot product */
+			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
+					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
+					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
+			/* Assign the boudary cell value */
+			collide_field_d[Q_LBM*(idx)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
+			i = treat_boundary_indeces[boundary_idx][4];
+			nx=x+LATTICE_VELOCITIES_D[i][0];
+			ny=y+LATTICE_VELOCITIES_D[i][1];
+			nz=z+LATTICE_VELOCITIES_D[i][2];
+			/* Compute density in the neighbour cell */
+			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
+			/* Compute dot product */
+			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
+					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
+					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
+			/* Assign the boudary cell value */
+			collide_field_d[Q_LBM*(idx)+i]=
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
+        }
+	}
 }
 
 

@@ -29,6 +29,26 @@ __device__ static const float LATTICE_WEIGHTS_D[19] = {
     2.0/36.0, 1.0/36.0, 1.0/36.0
 };
 
+
+#define LEFT_BOUNDARY_IDX 0
+#define RIGHT_BOUNDARY_IDX 1
+#define BOTTOM_BOUNDARY_IDX 2
+#define TOP_BOUNDARY_IDX 3
+#define BACK_BOUNDARY_IDX 4
+#define FRONT_BOUNDARY_IDX 5
+/**
+ * This double array used to store number of pdf's which we need to copy
+ * on pdf's in treatBoundary step.
+ */
+__device__ static const float treat_boundary_indeces[6][5] = {
+	{3,7,10,13,17},
+	{1,5,8,11,15},
+	{4,11,12,13,18},
+	{0,5,6,7,14},
+	{14,15,16,17,18},
+	{0,1,2,3,4}
+};
+
 /** Determines if the computer has CUDA enabled GPU and returns true or false */
 int HasCudaGpu();
 

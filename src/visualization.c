@@ -134,3 +134,46 @@ void WriteField(const float * const field, const char * filename, unsigned int t
 		ERROR( szBuff );
 	}
 }
+
+void writeFlagField(const int * const flagField, const char * filename, const int xlength, const int rank) {
+  int x,y,z, stepX=xlength+2,stepY=xlength+2,stepZ=xlength+2;
+
+  char szFileName[80];
+  FILE *fp=NULL;
+  sprintf( szFileName, "%s-rank%i.out", filename, rank );
+  fp = fopen( szFileName, "w");
+  if( fp == NULL ){
+    char szBuff[80];
+    sprintf( szBuff, "Failed to open %s", szFileName );
+    ERROR( szBuff );
+    return;
+  }
+
+  fprintf(fp, "(y,z)\\x  ");
+  for(x=0; x<stepX; x++) {
+      fprintf(fp, "%2i ",x);
+  }
+  fprintf(fp, "\n-------");
+  for(x=0; x<stepX; x++) {
+      fprintf(fp, "---");
+  }
+  fprintf(fp, "\n");
+
+  for(z=0;z<stepZ;z++){
+      for(y=stepY-1;y>=0;y--){
+          fprintf(fp, "(%2d,%2d): ",y,z);
+          for(x=0;x<stepX;x++){
+              fprintf(fp, "%2i ",flagField[x+y*stepX+z*stepX*stepY]);
+          }
+          fprintf(fp, "\n");
+      }
+      fprintf(fp, "\n");
+  }
+
+  if(fclose(fp)){
+    char szBuff[80];
+    sprintf( szBuff, "Failed to close %s", szFileName );
+    ERROR( szBuff );
+  }
+}
+

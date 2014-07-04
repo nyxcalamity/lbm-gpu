@@ -20,4 +20,6 @@ void PrintField(float *field, int ncell);
 void WriteField(const float * const field, const char * filename, unsigned int t, const int xlength,
 		const int rank);
 
+void writeFlagField(const int * const flagField, const char * filename, const int xlength, const int rank);
+
 #endif
