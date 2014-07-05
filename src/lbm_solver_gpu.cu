@@ -42,165 +42,169 @@ __device__ void ComputePostCollisionDistributionsGpu(float *current_cell, float 
 
 
 /**
- * Performs the actual collision computation
+ * Performs streaming, collision and treatment step.
  */
-__global__ void DoColision(float *collide_field_d, int *flag_field_d){
-	float density, velocity[D_LBM], feq[Q_LBM], *currentCell;
-	int x = 1+threadIdx.x+blockIdx.x*blockDim.x;
-	int y = 1+threadIdx.y+blockIdx.y*blockDim.y;
-	int z = 1+threadIdx.z+blockIdx.z*blockDim.z;
-	int step = xlength_d+2;
-	int idx = x+y*step+z*step*step;
-
-	//check that indices are within the bounds since there could be more threads than needed
-	if (x<(step-1) && y<(step-1) && z<(step-1)){
-		currentCell=&collide_field_d[Q_LBM*idx];
-		ComputeDensityGpu(currentCell,&density);
-		ComputeVelocityGpu(currentCell,&density,velocity);
-		ComputeFeqGpu(&density,velocity,feq);
-		ComputePostCollisionDistributionsGpu(currentCell,feq);
-	}
-}
-
-
-/**
- * Performs the actual streaming computation
- */
-__global__ void DoStreaming(float *stream_field_d, float *collide_field_d, int *flag_field_d){
+__global__ void StreamCollideTreat(float *stream_field_d, float *collide_field_d, int *flag_field_d){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
 	int y = threadIdx.y+blockIdx.y*blockDim.y;
 	int z = threadIdx.z+blockIdx.z*blockDim.z;
-	int step = xlength_d+2, idx = x+y*step+z*step*step, nx, ny, nz, i;
+//	float *stream_field_d=*stream_field_dd, *collide_field_d=*stream_field_dd;
+
+//	__shared__ float collide_field_s[BLOCK_SIZE*BLOCK_SIZE*BLOCK_SIZE*Q_LBM];
+//	int idx_block = threadIdx.x+threadIdx.y*blockDim.x+threadIdx.z*blockDim.x*blockDim.y;
+
+	int step=xlength_d+2, idx=x+y*step+z*step*step, nx, ny, nz, i, boundary_side=0, boundary_idx=100500;
+	float density, velocity[D_LBM], feq[Q_LBM], *current_cell_s, dot_prod, *swap=NULL;
 
 	//check that indices are within the bounds since there could be more threads than needed
 	if (idx<num_cells_d && flag_field_d[idx]==FLUID){
-		i = 0;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 1;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 2;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 3;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 4;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 5;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 6;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 7;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 8;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 9;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 10;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 11;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 12;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 13;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 14;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 15;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 16;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 17;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
-		i = 18;
-		nx=x-LATTICE_VELOCITIES_D[i][0];
-		ny=y-LATTICE_VELOCITIES_D[i][1];
-		nz=z-LATTICE_VELOCITIES_D[i][2];
-		stream_field_d[Q_LBM*idx+i]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+i];
-
+		nx=x-LATTICE_VELOCITIES_D[0][0];
+		ny=y-LATTICE_VELOCITIES_D[0][1];
+		nz=z-LATTICE_VELOCITIES_D[0][2];
+//		stream_field_d[0]=collide_field_d[0];
+//		(*stream_field_dd)[0]=(*collide_field_dd)[0];
+		stream_field_d[Q_LBM*idx]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)];
+		nx=x-LATTICE_VELOCITIES_D[1][0];
+		ny=y-LATTICE_VELOCITIES_D[1][1];
+		nz=z-LATTICE_VELOCITIES_D[1][2];
+		stream_field_d[Q_LBM*idx+1]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+1];
+		nx=x-LATTICE_VELOCITIES_D[2][0];
+		ny=y-LATTICE_VELOCITIES_D[2][1];
+		nz=z-LATTICE_VELOCITIES_D[2][2];
+		stream_field_d[Q_LBM*idx+2]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+2];
+		nx=x-LATTICE_VELOCITIES_D[3][0];
+		ny=y-LATTICE_VELOCITIES_D[3][1];
+		nz=z-LATTICE_VELOCITIES_D[3][2];
+		stream_field_d[Q_LBM*idx+3]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+3];
+		nx=x-LATTICE_VELOCITIES_D[4][0];
+		ny=y-LATTICE_VELOCITIES_D[4][1];
+		nz=z-LATTICE_VELOCITIES_D[4][2];
+		stream_field_d[Q_LBM*idx+4]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+4];
+		nx=x-LATTICE_VELOCITIES_D[5][0];
+		ny=y-LATTICE_VELOCITIES_D[5][1];
+		nz=z-LATTICE_VELOCITIES_D[5][2];
+		stream_field_d[Q_LBM*idx+5]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+5];
+		nx=x-LATTICE_VELOCITIES_D[6][0];
+		ny=y-LATTICE_VELOCITIES_D[6][1];
+		nz=z-LATTICE_VELOCITIES_D[6][2];
+		stream_field_d[Q_LBM*idx+6]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+6];
+		nx=x-LATTICE_VELOCITIES_D[7][0];
+		ny=y-LATTICE_VELOCITIES_D[7][1];
+		nz=z-LATTICE_VELOCITIES_D[7][2];
+		stream_field_d[Q_LBM*idx+7]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+7];
+		nx=x-LATTICE_VELOCITIES_D[8][0];
+		ny=y-LATTICE_VELOCITIES_D[8][1];
+		nz=z-LATTICE_VELOCITIES_D[8][2];
+		stream_field_d[Q_LBM*idx+8]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+8];
+		nx=x-LATTICE_VELOCITIES_D[9][0];
+		ny=y-LATTICE_VELOCITIES_D[9][1];
+		nz=z-LATTICE_VELOCITIES_D[9][2];
+		stream_field_d[Q_LBM*idx+9]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+9];
+		nx=x-LATTICE_VELOCITIES_D[10][0];
+		ny=y-LATTICE_VELOCITIES_D[10][1];
+		nz=z-LATTICE_VELOCITIES_D[10][2];
+		stream_field_d[Q_LBM*idx+10]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+10];
+		nx=x-LATTICE_VELOCITIES_D[11][0];
+		ny=y-LATTICE_VELOCITIES_D[11][1];
+		nz=z-LATTICE_VELOCITIES_D[11][2];
+		stream_field_d[Q_LBM*idx+11]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+11];
+		nx=x-LATTICE_VELOCITIES_D[12][0];
+		ny=y-LATTICE_VELOCITIES_D[12][1];
+		nz=z-LATTICE_VELOCITIES_D[12][2];
+		stream_field_d[Q_LBM*idx+12]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+12];
+		nx=x-LATTICE_VELOCITIES_D[13][0];
+		ny=y-LATTICE_VELOCITIES_D[13][1];
+		nz=z-LATTICE_VELOCITIES_D[13][2];
+		stream_field_d[Q_LBM*idx+13]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+13];
+		nx=x-LATTICE_VELOCITIES_D[14][0];
+		ny=y-LATTICE_VELOCITIES_D[14][1];
+		nz=z-LATTICE_VELOCITIES_D[14][2];
+		stream_field_d[Q_LBM*idx+14]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+14];
+		nx=x-LATTICE_VELOCITIES_D[15][0];
+		ny=y-LATTICE_VELOCITIES_D[15][1];
+		nz=z-LATTICE_VELOCITIES_D[15][2];
+		stream_field_d[Q_LBM*idx+15]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+15];
+		nx=x-LATTICE_VELOCITIES_D[16][0];
+		ny=y-LATTICE_VELOCITIES_D[16][1];
+		nz=z-LATTICE_VELOCITIES_D[16][2];
+		stream_field_d[Q_LBM*idx+16]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+16];
+		nx=x-LATTICE_VELOCITIES_D[17][0];
+		ny=y-LATTICE_VELOCITIES_D[17][1];
+		nz=z-LATTICE_VELOCITIES_D[17][2];
+		stream_field_d[Q_LBM*idx+17]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+17];
+		nx=x-LATTICE_VELOCITIES_D[18][0];
+		ny=y-LATTICE_VELOCITIES_D[18][1];
+		nz=z-LATTICE_VELOCITIES_D[18][2];
+		stream_field_d[Q_LBM*idx+18]=collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+18];
 	}
-}
 
+	//make sure that all cells were processed
+	__syncthreads();
+	//FIXME:swap doesn't work
+	if(idx==0){
+		swap=collide_field_d;
+		collide_field_d=stream_field_d;
+		stream_field_d=swap;
+	}
+	//make sure that all cells were processed
+	__syncthreads();
 
-__global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
-	int x = threadIdx.x+blockIdx.x*blockDim.x;
-	int y = threadIdx.y+blockIdx.y*blockDim.y;
-	int z = threadIdx.z+blockIdx.z*blockDim.z;
-    int nx,ny,nz,i,step=xlength_d+2, idx=x+y*step+z*step*step;
-    float density,dot_prod;
-    int boundary_side=0, boundary_idx = 100500;
+	//check that indices are within the bounds since there could be more threads than needed
+	if (0<x && x<(step-1) && 0<y && y<(step-1) && 0<z && z<(step-1)){
+		//copy current cell values into shared memory
+//		collide_field_s[Q_LBM*idx_block]=collide_field_d[Q_LBM*idx];
+//		collide_field_s[Q_LBM*idx_block+1]=collide_field_d[Q_LBM*idx+1];
+//		collide_field_s[Q_LBM*idx_block+2]=collide_field_d[Q_LBM*idx+2];
+//		collide_field_s[Q_LBM*idx_block+3]=collide_field_d[Q_LBM*idx+3];
+//		collide_field_s[Q_LBM*idx_block+4]=collide_field_d[Q_LBM*idx+4];
+//		collide_field_s[Q_LBM*idx_block+5]=collide_field_d[Q_LBM*idx+5];
+//		collide_field_s[Q_LBM*idx_block+6]=collide_field_d[Q_LBM*idx+6];
+//		collide_field_s[Q_LBM*idx_block+7]=collide_field_d[Q_LBM*idx+7];
+//		collide_field_s[Q_LBM*idx_block+8]=collide_field_d[Q_LBM*idx+8];
+//		collide_field_s[Q_LBM*idx_block+9]=collide_field_d[Q_LBM*idx+9];
+//		collide_field_s[Q_LBM*idx_block+10]=collide_field_d[Q_LBM*idx+10];
+//		collide_field_s[Q_LBM*idx_block+11]=collide_field_d[Q_LBM*idx+11];
+//		collide_field_s[Q_LBM*idx_block+12]=collide_field_d[Q_LBM*idx+12];
+//		collide_field_s[Q_LBM*idx_block+13]=collide_field_d[Q_LBM*idx+13];
+//		collide_field_s[Q_LBM*idx_block+14]=collide_field_d[Q_LBM*idx+14];
+//		collide_field_s[Q_LBM*idx_block+15]=collide_field_d[Q_LBM*idx+15];
+//		collide_field_s[Q_LBM*idx_block+16]=collide_field_d[Q_LBM*idx+16];
+//		collide_field_s[Q_LBM*idx_block+17]=collide_field_d[Q_LBM*idx+17];
+//		collide_field_s[Q_LBM*idx_block+18]=collide_field_d[Q_LBM*idx+18];
 
-    if(idx<num_cells_d) {
+//		current_cell_s = &collide_field_s[Q_LBM*idx_block];
+		current_cell_s=&collide_field_d[Q_LBM*idx];
+		ComputeDensityGpu(current_cell_s,&density);
+		ComputeVelocityGpu(current_cell_s,&density,velocity);
+		ComputeFeqGpu(&density,velocity,feq);
+		ComputePostCollisionDistributionsGpu(current_cell_s,feq);
+
+		//copy data back
+//		collide_field_d[Q_LBM*idx]=collide_field_s[Q_LBM*idx_block];
+//		collide_field_d[Q_LBM*idx+1]=collide_field_s[Q_LBM*idx_block+1];
+//		collide_field_d[Q_LBM*idx+2]=collide_field_s[Q_LBM*idx_block+2];
+//		collide_field_d[Q_LBM*idx+3]=collide_field_s[Q_LBM*idx_block+3];
+//		collide_field_d[Q_LBM*idx+4]=collide_field_s[Q_LBM*idx_block+4];
+//		collide_field_d[Q_LBM*idx+5]=collide_field_s[Q_LBM*idx_block+5];
+//		collide_field_d[Q_LBM*idx+6]=collide_field_s[Q_LBM*idx_block+6];
+//		collide_field_d[Q_LBM*idx+7]=collide_field_s[Q_LBM*idx_block+7];
+//		collide_field_d[Q_LBM*idx+8]=collide_field_s[Q_LBM*idx_block+8];
+//		collide_field_d[Q_LBM*idx+9]=collide_field_s[Q_LBM*idx_block+9];
+//		collide_field_d[Q_LBM*idx+10]=collide_field_s[Q_LBM*idx_block+10];
+//		collide_field_d[Q_LBM*idx+11]=collide_field_s[Q_LBM*idx_block+11];
+//		collide_field_d[Q_LBM*idx+12]=collide_field_s[Q_LBM*idx_block+12];
+//		collide_field_d[Q_LBM*idx+13]=collide_field_s[Q_LBM*idx_block+13];
+//		collide_field_d[Q_LBM*idx+14]=collide_field_s[Q_LBM*idx_block+14];
+//		collide_field_d[Q_LBM*idx+15]=collide_field_s[Q_LBM*idx_block+15];
+//		collide_field_d[Q_LBM*idx+16]=collide_field_s[Q_LBM*idx_block+16];
+//		collide_field_d[Q_LBM*idx+17]=collide_field_s[Q_LBM*idx_block+17];
+//		collide_field_d[Q_LBM*idx+18]=collide_field_s[Q_LBM*idx_block+18];
+	}
+
+	//make sure that all cells were processed
+	__syncthreads();
+
+	if(idx<num_cells_d) {
 		if(flag_field_d[idx] == BOTTOM_BOUNDARY) {
 			boundary_side = BOTTOM_BOUNDARY;
 			boundary_idx = BOTTOM_BOUNDARY_IDX;
@@ -371,54 +375,36 @@ __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 			collide_field_d[Q_LBM*(idx)+i]=
 					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
-        }
+		}
 	}
 }
 
 
 void DoIteration(float *collide_field, float *stream_field, int *flag_field, float tau,
-		float *wall_velocity, int xlength,
-		float **collide_field_d, float **stream_field_d,int **flag_field_d){
-	float *swap=NULL, data[3];
+		float *wall_velocity, int xlength, float **collide_field_d, float **stream_field_d,
+		int **flag_field_d, float *mlups_sum){
 	int num_cells = pow(xlength+2, D_LBM);
 	size_t computational_field_size = Q_LBM*num_cells*sizeof(float);
 	clock_t mlups_time;
-
-	//TODO:get rid of redundant data
-	for(int i=0;i<D_LBM;i++)
-		data[i]=wall_velocity[i];
 
 	//initialize constant data
 	cudaErrorCheck(cudaMemcpyToSymbol(xlength_d, &xlength, sizeof(int), 0, cudaMemcpyHostToDevice));
 	cudaErrorCheck(cudaMemcpyToSymbol(num_cells_d, &num_cells, sizeof(int), 0, cudaMemcpyHostToDevice));
 	cudaErrorCheck(cudaMemcpyToSymbol(tau_d, &tau, sizeof(float), 0, cudaMemcpyHostToDevice));
-	cudaErrorCheck(cudaMemcpyToSymbol(wall_velocity_d, data, sizeof(data), 0, cudaMemcpyHostToDevice));
+	cudaErrorCheck(cudaMemcpyToSymbol(wall_velocity_d, wall_velocity, D_LBM*sizeof(float), 0, cudaMemcpyHostToDevice));
 
 	//define grid structure
 	//NOTE:redundant threads for boundary cells are not accounted for
 	dim3 block(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 	dim3 grid((xlength+2+block.x-1)/block.x, (xlength+2+block.y-1)/block.y, (xlength+2+block.z-1)/block.z);
 
-	//init MLUPS computation
 	mlups_time = clock();
-
 	//perform streaming
-	DoStreaming<<<grid,block>>>(*stream_field_d, *collide_field_d, *flag_field_d);
+	StreamCollideTreat<<<grid,block>>>(*stream_field_d, *collide_field_d, *flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
-	cudaErrorCheck(cudaThreadSynchronize());
-
-	/* Perform the swapping of collide and stream fields */
-	swap=*collide_field_d; *collide_field_d=*stream_field_d; *stream_field_d=swap;
-
-	//perform collision
-	DoColision<<<grid,block>>>(*collide_field_d, *flag_field_d);
-	cudaErrorCheck(cudaPeekAtLastError());
-	cudaErrorCheck(cudaThreadSynchronize());
-
-	TreatBoundary<<<grid,block>>>(*collide_field_d, *flag_field_d);
-	cudaErrorCheck(cudaPeekAtLastError());
-
 	mlups_time = clock()-mlups_time;
+
+	*mlups_sum += num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC);
 	if(VERBOSE)
 		printf("MLUPS: %f\n", num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC));
 

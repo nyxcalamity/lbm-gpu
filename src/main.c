@@ -43,9 +43,10 @@ int main(int argc, char *argv[]) {
 	InitialiseDeviceFields(collide_field, stream_field, flag_field, xlength, &collide_field_d, &stream_field_d, &flag_field_d);
 
 	for (t = 0; t < timesteps; t++) {
+		printf("Time step: #%d\n", t);
 		if (gpu_enabled){
 			DoIteration(collide_field, stream_field, flag_field, tau, wall_velocity, xlength,
-					&collide_field_d, &stream_field_d, &flag_field_d);
+					&collide_field_d, &stream_field_d, &flag_field_d, &mlups_sum);
 		} else {
 			mlups_time = clock();
 			/* Copy pdfs from neighbouring cells into collide field */
@@ -62,14 +63,12 @@ int main(int argc, char *argv[]) {
 			if(VERBOSE)
 				printf("MLUPS: %f\n", num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC));
 		}
-		printf("Time step: #%d\n", t);
 		/* Print out vtk output if needed */
 		if (t % timesteps_per_plotting == 0)
 			WriteVtkOutput(collide_field, flag_field, "img/lbm-img", t, xlength);
 	}
 
-	if(!gpu_enabled)
-		printf("Average MLUPS: %f\n", mlups_sum/(t+1));
+	printf("Average MLUPS: %f\n", mlups_sum/(t+1));
 
 	if (VERBOSE) {
 		WriteField(collide_field, "img/collide-field", 0, xlength, gpu_enabled);

@@ -1,16 +1,10 @@
 TODO:
-- reorganize gpu files
-- move computation loop to gpu 
-- exclude memory allocation from MLUPS computation
-
-URGENT:
 - decrease the number of brances (for loops, ifs, etc)
 - merge all kernels into just one kernel
 - outsource resource allocation to initialize fields
-- get rid of 2nd array
 
-- check to see if there is a pattern is the numbers that are different, could be a bug, could be a float round off, its an open question
-
+- check to see if there is a pattern is the numbers that are different, could be a bug, could be a 
+float round off, its an open question
 
 MLUPS:
 - Start -> 3
