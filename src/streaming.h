@@ -6,4 +6,5 @@
  * collideField to streamField.
  */
 void DoStreaming(float *collide_field, float *stream_field, int *flag_field, int xlength);
+
 #endif

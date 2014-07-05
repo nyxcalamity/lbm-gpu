@@ -30,7 +30,7 @@ static const float LATTICE_WEIGHTS[19] = {
     2.0/36.0, 1.0/36.0, 1.0/36.0
 };
 
-/* Needed for definition of flag_field */
+//additional cell definitions
 #define LEFT_BOUNDARY 5100
 #define RIGHT_BOUNDARY 5900
 #define BOTTOM_BOUNDARY 5010

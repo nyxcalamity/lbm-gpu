@@ -17,18 +17,16 @@
 #include "utils.h"
 
 int main(int argc, char *argv[]) {
-	float *collide_field=NULL, *stream_field=NULL, *swap=NULL, tau, wall_velocity[D_LBM], num_cells,
-			mlups_sum;
-	float *collide_field_d=NULL, *stream_field_d=NULL;
-	int *flag_field_d=NULL;
-	int *flag_field=NULL, xlength, t, timesteps, timesteps_per_plotting,
-			gpu_enabled, gpu_streaming, gpu_collision, gpu_boundaries;
+	float *collide_field=NULL, *stream_field=NULL, *collide_field_d=NULL, *stream_field_d=NULL,
+			*swap=NULL, tau, wall_velocity[D_LBM], num_cells, mlups_sum;
+	int *flag_field=NULL, *flag_field_d=NULL, xlength, t, timesteps, timesteps_per_plotting,
+			gpu_enabled;
 	clock_t mlups_time;
 	size_t field_size;
 
 	//process parameters
 	ReadParameters(&xlength, &tau, wall_velocity, &timesteps, &timesteps_per_plotting, argc, argv,
-			&gpu_enabled, &gpu_streaming, &gpu_collision, &gpu_boundaries);
+			&gpu_enabled);
 
 	//check if provided parameters are legitimate
 	ValidateModel(wall_velocity, xlength, tau);
@@ -41,14 +39,15 @@ int main(int argc, char *argv[]) {
 	collide_field = (float*) malloc(field_size);
 	stream_field = (float*) malloc(field_size);
 	flag_field = (int*) malloc(num_cells*sizeof(int));
-	InitialiseFields(collide_field, stream_field, flag_field, xlength,gpu_enabled);
+	InitialiseFields(collide_field, stream_field, flag_field, xlength, gpu_enabled);
 	InitialiseDeviceFields(collide_field, stream_field, flag_field, xlength, &collide_field_d, &stream_field_d, &flag_field_d);
 
 	for (t = 0; t < timesteps; t++) {
-		mlups_time = clock();
-		if (gpu_enabled || gpu_streaming || gpu_collision || gpu_boundaries)
-			DoIteration(collide_field, stream_field, flag_field, tau, wall_velocity, xlength, &collide_field_d, &stream_field_d, &flag_field_d);
-		else {
+		if (gpu_enabled){
+			DoIteration(collide_field, stream_field, flag_field, tau, wall_velocity, xlength,
+					&collide_field_d, &stream_field_d, &flag_field_d);
+		} else {
+			mlups_time = clock();
 			/* Copy pdfs from neighbouring cells into collide field */
 			DoStreaming(collide_field, stream_field, flag_field, xlength);
 			/* Perform the swapping of collide and stream fields */
@@ -57,24 +56,24 @@ int main(int argc, char *argv[]) {
 			DoCollision(collide_field, flag_field, tau, xlength);
 			/* Treat boundaries */
 			TreatBoundary(collide_field, flag_field, wall_velocity, xlength);
+			mlups_time = clock()-mlups_time;
+			/* Print out the MLUPS value */
+			mlups_sum += num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC);
+			if(VERBOSE)
+				printf("MLUPS: %f\n", num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC));
 		}
-		/* Print out the MLUPS value */
-		mlups_time = clock()-mlups_time;
 		printf("Time step: #%d\n", t);
-		mlups_sum += num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC);
-		if(VERBOSE)
-			printf("MLUPS: %f\n", num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC));
 		/* Print out vtk output if needed */
 		if (t % timesteps_per_plotting == 0)
 			WriteVtkOutput(collide_field, flag_field, "img/lbm-img", t, xlength);
 	}
 
-	printf("Average MLUPS: %f\n", mlups_sum/(t+1));
+	if(!gpu_enabled)
+		printf("Average MLUPS: %f\n", mlups_sum/(t+1));
 
 	if (VERBOSE) {
-		WriteField(collide_field, "img/collide-field", 0, xlength,
-				(gpu_enabled || gpu_streaming || gpu_collision || gpu_boundaries));
-		writeFlagField(flag_field, "img/flag-field", xlength, (gpu_enabled || gpu_streaming || gpu_collision || gpu_boundaries));
+		WriteField(collide_field, "img/collide-field", 0, xlength, gpu_enabled);
+		writeFlagField(flag_field, "img/flag-field", xlength, gpu_enabled);
 	}
 
 	/* Free memory */
@@ -87,4 +86,5 @@ int main(int argc, char *argv[]) {
 	printf("Simulation complete.\n");
 	return 0;
 }
+
 #endif

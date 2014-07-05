@@ -25,7 +25,10 @@ LDFLAGS_CU=-lcudart #-lcuda
 OBJECTS=$(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 OBJECTS_CU=$(SOURCES_CU:$(SRC_DIR)/%.cu=$(BUILD_DIR)/%.o)
 
-all: clean $(EXECUTABLE)
+all: init clean $(EXECUTABLE)
+
+init:
+	mkdir -p build img
 
 clean:
 	rm -f $(OBJECTS) $(OBJECTS_CU) $(EXECUTABLE)
