@@ -56,7 +56,7 @@ void ReadParameters(int *xlength, float *tau, float *velocity_wall, int *timeste
 }
 
 
-void InitialiseFields(float *collide_field, float *stream_field, int *flag_field, int xlength){
+void InitialiseFields(float *collide_field, float *stream_field, int *flag_field, int xlength, int gpu_enabled){
     int x,y,z,i,step=xlength+2;
     
     /* NOTE: We use z=xlength+1 as the moving wall */
@@ -64,68 +64,72 @@ void InitialiseFields(float *collide_field, float *stream_field, int *flag_field
         for(y=0;y<step;y++){
             for(z=0;z<step;z++){
                 /* Initializing flags */
-            	if(x==0 && y==0 && z==0)
-            		flag_field[x+y*step+z*step*step] = LEFT_BOTTOM_BACK_CORNER;
-            	else if(x==0 && y==0 && z==step-1)
-            	    flag_field[x+y*step+z*step*step] = LEFT_BOTTOM_FRONT_CORNER;
-            	else if(x==0 && y==step-1 && z==0)
-            	    flag_field[x+y*step+z*step*step] = LEFT_UPPER_BACK_CORNER;
-            	else if(x==0 && y==step-1 && z==step-1)
-            	    flag_field[x+y*step+z*step*step] = LEFT_UPPER_FRONT_CORNER;
-            	else if(x==step-1 && y==0 && z==0)
-            	    flag_field[x+y*step+z*step*step] = RIGHT_BOTTOM_BACK_CORNER;
-            	else if(x==step-1 && y==0 && z==step-1)
-            	    flag_field[x+y*step+z*step*step] = RIGHT_BOTTOM_FRONT_CORNER;
-            	else if(x==step-1 && y==step-1 && z==0)
-            	    flag_field[x+y*step+z*step*step] = RIGHT_UPPER_BACK_CORNER;
-            	else if(x==step-1 && y==step-1 && z==step-1)
-            	    flag_field[x+y*step+z*step*step] = RIGHT_UPPER_FRONT_CORNER;
-				else if(x==0 && y==0)
-                    flag_field[x+y*step+z*step*step]=LEFT_BOTTOM_EDGE;
-				else if(x==xlength+1 && y==0)
-					flag_field[x+y*step+z*step*step]=RIGHT_BOTTOM_EDGE;
-				else if(y==0 && z==0)
-				    flag_field[x+y*step+z*step*step]=BACK_BOTTOM_EDGE;
-				else if(y==0 && z==xlength+1)
-					flag_field[x+y*step+z*step*step]=FRONT_BOTTOM_EDGE;
+            	if(gpu_enabled) {
+					if(x==0 && y==0 && z==0)
+						flag_field[x+y*step+z*step*step] = LEFT_BOTTOM_BACK_CORNER;
+					else if(x==0 && y==0 && z==step-1)
+						flag_field[x+y*step+z*step*step] = LEFT_BOTTOM_FRONT_CORNER;
+					else if(x==0 && y==step-1 && z==0)
+						flag_field[x+y*step+z*step*step] = LEFT_UPPER_BACK_CORNER;
+					else if(x==0 && y==step-1 && z==step-1)
+						flag_field[x+y*step+z*step*step] = LEFT_UPPER_FRONT_CORNER;
+					else if(x==step-1 && y==0 && z==0)
+						flag_field[x+y*step+z*step*step] = RIGHT_BOTTOM_BACK_CORNER;
+					else if(x==step-1 && y==0 && z==step-1)
+						flag_field[x+y*step+z*step*step] = RIGHT_BOTTOM_FRONT_CORNER;
+					else if(x==step-1 && y==step-1 && z==0)
+						flag_field[x+y*step+z*step*step] = RIGHT_UPPER_BACK_CORNER;
+					else if(x==step-1 && y==step-1 && z==step-1)
+						flag_field[x+y*step+z*step*step] = RIGHT_UPPER_FRONT_CORNER;
+					else if(x==0 && y==0)
+						flag_field[x+y*step+z*step*step]=LEFT_BOTTOM_EDGE;
+					else if(x==xlength+1 && y==0)
+						flag_field[x+y*step+z*step*step]=RIGHT_BOTTOM_EDGE;
+					else if(y==0 && z==0)
+						flag_field[x+y*step+z*step*step]=BACK_BOTTOM_EDGE;
+					else if(y==0 && z==xlength+1)
+						flag_field[x+y*step+z*step*step]=FRONT_BOTTOM_EDGE;
 
-				else if(x==0 && z==0)
-					flag_field[x+y*step+z*step*step]=LEFT_BACK_EDGE;
-				else if(x==0 && z==xlength+1)
-					flag_field[x+y*step+z*step*step]=LEFT_FRONT_EDGE;
-				else if(x==xlength+1 && z==0)
-					flag_field[x+y*step+z*step*step]=RIGHT_BACK_EDGE;
-				else if(x==xlength+1 && z==xlength+1)
-					flag_field[x+y*step+z*step*step]=RIGHT_FRONT_EDGE;
-				else if(x==0 && y==xlength+1)
-				    flag_field[x+y*step+z*step*step]=LEFT_UPPER_EDGE;
-				else if(x==xlength+1 && y==xlength+1)
-				    flag_field[x+y*step+z*step*step]=RIGHT_UPPER_EDGE;
-				else if(y==xlength+1 && z==0)
-					flag_field[x+y*step+z*step*step]=BACK_UPPER_EDGE;
-				else if(y==xlength+1 && z==xlength+1)
-					flag_field[x+y*step+z*step*step]=FRONT_UPPER_EDGE;
+					else if(x==0 && z==0)
+						flag_field[x+y*step+z*step*step]=LEFT_BACK_EDGE;
+					else if(x==0 && z==xlength+1)
+						flag_field[x+y*step+z*step*step]=LEFT_FRONT_EDGE;
+					else if(x==xlength+1 && z==0)
+						flag_field[x+y*step+z*step*step]=RIGHT_BACK_EDGE;
+					else if(x==xlength+1 && z==xlength+1)
+						flag_field[x+y*step+z*step*step]=RIGHT_FRONT_EDGE;
+					else if(x==0 && y==xlength+1)
+						flag_field[x+y*step+z*step*step]=LEFT_UPPER_EDGE;
+					else if(x==xlength+1 && y==xlength+1)
+						flag_field[x+y*step+z*step*step]=RIGHT_UPPER_EDGE;
+					else if(y==xlength+1 && z==0)
+						flag_field[x+y*step+z*step*step]=BACK_UPPER_EDGE;
+					else if(y==xlength+1 && z==xlength+1)
+						flag_field[x+y*step+z*step*step]=FRONT_UPPER_EDGE;
 
 
-
-				else if(y==0 && x!=0 && x!=step-1 && z!=0 && z!=step-1)
-            		flag_field[x+y*step+z*step*step] = BOTTOM_BOUNDARY;
-            	else if(y==step-1 && x!=0 && x!=step-1 && z!=0 && z!=step-1)
-            		flag_field[x+y*step+z*step*step] = TOP_BOUNDARY;
-				else if (x==0 && y!=0 && y!=step-1 && z!=0 && z!=step-1)
-					flag_field[x+y*step+z*step*step] = LEFT_BOUNDARY;
-				else if (x==step-1 && y!=0 && y!=step-1 && z!=0 && z!=step-1)
-					flag_field[x+y*step+z*step*step] = RIGHT_BOUNDARY;
-				else if (z==0 && y!=0 && y!=step-1 && x!=0 && x!=step-1)
-					flag_field[x+y*step+z*step*step] = BACK_BOUNDARY;
-				else if (z==step-1 && y!=0 && y!=step-1 && x!=0 && x!=step-1)
-					flag_field[x+y*step+z*step*step] = FRONT_BOUNDARY;
-				else if(y == xlength+1)
-                    flag_field[x+y*step+z*step*step]=MOVING_WALL;
-                else if(x == 0 || x == xlength+1 || y == 0 || z == xlength+1 || z == 0)
-                    flag_field[x+y*step+z*step*step]=NO_SLIP;
-                else
-                    flag_field[x+y*step+z*step*step]=FLUID;
+					else if(y==step-1 && x!=0 && x!=step-1 && z!=0 && z!=step-1)
+						flag_field[x+y*step+z*step*step] = TOP_BOUNDARY;
+					else if(y==0 && x!=0 && x!=step-1 && z!=0 && z!=step-1)
+						flag_field[x+y*step+z*step*step] = BOTTOM_BOUNDARY;
+					else if (x==0 && y!=0 && y!=step-1 && z!=0 && z!=step-1)
+						flag_field[x+y*step+z*step*step] = LEFT_BOUNDARY;
+					else if (x==step-1 && y!=0 && y!=step-1 && z!=0 && z!=step-1)
+						flag_field[x+y*step+z*step*step] = RIGHT_BOUNDARY;
+					else if (z==0 && y!=0 && y!=step-1 && x!=0 && x!=step-1)
+						flag_field[x+y*step+z*step*step] = BACK_BOUNDARY;
+					else if (z==step-1 && y!=0 && y!=step-1 && x!=0 && x!=step-1)
+						flag_field[x+y*step+z*step*step] = FRONT_BOUNDARY;
+					else
+						flag_field[x+y*step+z*step*step]=FLUID;
+            	} else {
+            		if(y == xlength+1)
+						flag_field[x+y*step+z*step*step]=MOVING_WALL;
+					else if(x == 0 || x == xlength+1 || y == 0 || z == xlength+1 || z == 0)
+						flag_field[x+y*step+z*step*step]=NO_SLIP;
+					else
+						flag_field[x+y*step+z*step*step]=FLUID;
+            	}
                 
                 /* Initializing distributions for stream and collide fields */
                 for(i=0;i<Q_LBM;i++){

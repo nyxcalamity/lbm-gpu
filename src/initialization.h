@@ -19,6 +19,6 @@ void ReadParameters(
 
 
 /* Initializes the particle distribution functions and the flag field */
-void InitialiseFields(float *collide_field, float *stream_field,int *flag_field, int xlength);
+void InitialiseFields(float *collide_field, float *stream_field,int *flag_field, int xlength, int gpu_enabled);
 
 #endif

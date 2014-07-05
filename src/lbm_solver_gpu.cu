@@ -251,21 +251,6 @@ __global__ void DoStreaming(float *stream_field_d, float *collide_field_d, int *
 }
 
 
-__device__ int isEdge(const int x, const int y, const int z) {
-	return (x==0 && y==0) ||
-			(x==0 && y==xlength_d+1) ||
-			(x==0 && z==0) ||
-			(x==0 && z==xlength_d+1) ||
-			(x==xlength_d+1 && y==0) ||
-			(x==xlength_d+1 && y==xlength_d+1) ||
-			(x==xlength_d+1 && z==0) ||
-			(x==xlength_d+1 && z==xlength_d+1) ||
-			(y==0 && z==0) ||
-			(y==0 && z==xlength_d+1) ||
-			(y==xlength_d+1 && z==0) ||
-			(y==xlength_d+1 && z==xlength_d+1);
-}
-
 __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
 	int y = threadIdx.y+blockIdx.y*blockDim.y;
@@ -394,13 +379,10 @@ __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
-			/* Compute density in the neighbour cell */
 			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
-			/* Compute dot product */
 			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
-			/* Assign the boudary cell value */
 			collide_field_d[Q_LBM*(idx)+i]=
 					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
@@ -408,13 +390,10 @@ __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
-			/* Compute density in the neighbour cell */
 			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
-			/* Compute dot product */
 			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
-			/* Assign the boudary cell value */
 			collide_field_d[Q_LBM*(idx)+i]=
 					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
@@ -422,13 +401,10 @@ __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
-			/* Compute density in the neighbour cell */
 			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
-			/* Compute dot product */
 			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
-			/* Assign the boudary cell value */
 			collide_field_d[Q_LBM*(idx)+i]=
 					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
@@ -436,13 +412,10 @@ __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
-			/* Compute density in the neighbour cell */
 			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
-			/* Compute dot product */
 			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
-			/* Assign the boudary cell value */
 			collide_field_d[Q_LBM*(idx)+i]=
 					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
@@ -450,13 +423,10 @@ __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
-			/* Compute density in the neighbour cell */
 			ComputeDensityGpu(&collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)],&density);
-			/* Compute dot product */
 			dot_prod=LATTICE_VELOCITIES_D[i][0]*wall_velocity_d[0]+
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
-			/* Assign the boudary cell value */
 			collide_field_d[Q_LBM*(idx)+i]=
 					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
@@ -468,9 +438,7 @@ __global__ void TreatBoundary(float *collide_field_d, int* flag_field_d){
 void DoIteration(float *collide_field, float *stream_field, int *flag_field, float tau,
 		float *wall_velocity, int xlength,
 		float **collide_field_d, float **stream_field_d,int **flag_field_d){
-//	float *collide_field_d=NULL, *stream_field_d=NULL,
 	float *swap=NULL, data[3];
-//	int *flag_field_d=NULL,
 	int num_cells = pow(xlength+2, D_LBM);
 	size_t computational_field_size = Q_LBM*num_cells*sizeof(float);
 	size_t flag_field_size = num_cells*sizeof(int);
@@ -478,13 +446,6 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	for(int i=0;i<D_LBM;i++)
 		data[i]=wall_velocity[i];
 
-	//initialize working data
-//	cudaErrorCheck(cudaMalloc(&collide_field_d, computational_field_size));
-//	cudaErrorCheck(cudaMemcpy(collide_field_d, collide_field, computational_field_size, cudaMemcpyHostToDevice));
-//	cudaErrorCheck(cudaMalloc(&stream_field_d, computational_field_size));
-//	cudaErrorCheck(cudaMemcpy(stream_field_d, stream_field, computational_field_size, cudaMemcpyHostToDevice));
-//	cudaErrorCheck(cudaMalloc(&flag_field_d, flag_field_size));
-//	cudaErrorCheck(cudaMemcpy(flag_field_d, flag_field, flag_field_size, cudaMemcpyHostToDevice));
 
 	//initialize constant data
 	cudaErrorCheck(cudaMemcpyToSymbol(xlength_d, &xlength, sizeof(int), 0, cudaMemcpyHostToDevice));
@@ -516,9 +477,4 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	//copy data back to host
 	cudaErrorCheck(cudaMemcpy(collide_field, *collide_field_d, computational_field_size, cudaMemcpyDeviceToHost));
 	cudaErrorCheck(cudaMemcpy(stream_field, *stream_field_d, computational_field_size, cudaMemcpyDeviceToHost));
-
-	//free device memory
-//	cudaErrorCheck(cudaFree(collide_field_d));
-//	cudaErrorCheck(cudaFree(stream_field_d));
-//	cudaErrorCheck(cudaFree(flag_field_d));
 }

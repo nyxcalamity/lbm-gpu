@@ -41,9 +41,8 @@ int main(int argc, char *argv[]) {
 	collide_field = (float*) malloc(field_size);
 	stream_field = (float*) malloc(field_size);
 	flag_field = (int*) malloc(num_cells*sizeof(int));
-	InitialiseFields(collide_field, stream_field, flag_field, xlength);
+	InitialiseFields(collide_field, stream_field, flag_field, xlength,gpu_enabled);
 	InitialiseDeviceFields(collide_field, stream_field, flag_field, xlength, &collide_field_d, &stream_field_d, &flag_field_d);
-	CheckGPU(collide_field, stream_field, flag_field, xlength, collide_field_d, stream_field_d, flag_field_d);
 
 	for (t = 0; t < timesteps; t++) {
 		mlups_time = clock();
