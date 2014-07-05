@@ -10,3 +10,11 @@ URGENT:
 - get rid of 2nd array
 
 - check to see if there is a pattern is the numbers that are different, could be a bug, could be a float round off, its an open question
+
+
+MLUPS:
+- Start -> 3
+- One allocattion for all three steps -> 10
+- Not takink allocation in count -> 12
+- treatBoundary for GPU -> 20
+- ComputeVelocityGpu without for loop -> 25
