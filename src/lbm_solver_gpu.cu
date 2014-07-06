@@ -11,7 +11,7 @@
 
 __constant__ float tau_d, wall_velocity_d[D_LBM];
 __constant__ int xlength_d, num_cells_d;
-//__device__ float *stream_field_d, *collide_field_d;
+__device__ float *stream_field_d, *collide_field_d;
 
 /**
  * Computes the post-collision distribution functions according to the BGK update rule and
@@ -42,10 +42,10 @@ __device__ void ComputePostCollisionDistributionsGpu(float *current_cell, float 
 
 
 //__device__ void DoStreaming(int *flag_field_d, int x, int y, int z){
-__global__ void DoStreaming(float *stream_field_d, float *collide_field_d, int *flag_field_d){
-	int x = threadIdx.x+blockIdx.x*blockDim.x;
-	int y = threadIdx.y+blockIdx.y*blockDim.y;
-	int z = threadIdx.z+blockIdx.z*blockDim.z;
+__device__ void DoStreaming(int *flag_field_d, int x, int y, int z){
+//	int x = threadIdx.x+blockIdx.x*blockDim.x;
+//	int y = threadIdx.y+blockIdx.y*blockDim.y;
+//	int z = threadIdx.z+blockIdx.z*blockDim.z;
 	int step=xlength_d+2, idx=x+y*step+z*step*step, nx, ny, nz;
 
 	//check that indices are within the bounds since there could be more threads than needed
@@ -131,7 +131,7 @@ __global__ void DoStreaming(float *stream_field_d, float *collide_field_d, int *
 
 
 //__device__ void DoCollision(int *flag_field_d, int x, int y, int z){
-__global__ void DoCollision(float *collide_field_d, int *flag_field_d){
+__global__ void DoCollision(int *flag_field_d){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
 	int y = threadIdx.y+blockIdx.y*blockDim.y;
 	int z = threadIdx.z+blockIdx.z*blockDim.z;
@@ -195,7 +195,7 @@ __global__ void DoCollision(float *collide_field_d, int *flag_field_d){
 
 
 //__device__ void TreatBoundary(int *flag_field_d, int x, int y, int z){
-__global__ void TreatBoundary(float *collide_field_d, int *flag_field_d){
+__global__ void TreatBoundary(int *flag_field_d){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
 	int y = threadIdx.y+blockIdx.y*blockDim.y;
 	int z = threadIdx.z+blockIdx.z*blockDim.z;
@@ -378,34 +378,34 @@ __global__ void TreatBoundary(float *collide_field_d, int *flag_field_d){
 	}
 }
 
+__global__ void DoSwap(){
+	int x = threadIdx.x+blockIdx.x*blockDim.x;
+	int y = threadIdx.y+blockIdx.y*blockDim.y;
+	int z = threadIdx.z+blockIdx.z*blockDim.z;
+    int step=xlength_d+2, idx=x+y*step+z*step*step;
+    float *swap = NULL;
+	if(idx==0) {
+		swap=collide_field_d; collide_field_d=stream_field_d; stream_field_d=swap;
+	}
+}
+
 /**
  * Performs streaming, collision and treatment step.
  */
-//__global__ void StreamCollideTreat(int *flag_field_d){
-//	int x = threadIdx.x+blockIdx.x*blockDim.x;
-//	int y = threadIdx.y+blockIdx.y*blockDim.y;
-//	int z = threadIdx.z+blockIdx.z*blockDim.z;
-//
-//	DoStreaming(flag_field_d, x, y, z);
-//	__syncthreads();
-//
-//	//FIXME:swap doesn't work
-//	if(idx==0){
-//		swap=stream_field_d;
-//		stream_field_d=collide_field_d;
-//		collide_field_d=swap;
-//
-//		//sync dev pointers
-////		stream_field_ptr_d=stream_field_d;
-////		collide_field_ptr_d=collide_field_d;
-//	}
-//
+__global__ void StreamCollideTreat(int *flag_field_d){
+	int x = threadIdx.x+blockIdx.x*blockDim.x;
+	int y = threadIdx.y+blockIdx.y*blockDim.y;
+	int z = threadIdx.z+blockIdx.z*blockDim.z;
+
+	DoStreaming(flag_field_d, x, y, z);
+	__syncthreads();
+//	DoSwap(x,y,z);
 //	__syncthreads();
 //	DoCollision(flag_field_d, x, y, z);
 //	__syncthreads();
 //	TreatBoundary(flag_field_d, x, y, z);
-//
-//}
+
+}
 
 
 void DoIteration(float *collide_field, float *stream_field, int *flag_field, float tau,
@@ -422,8 +422,8 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	cudaErrorCheck(cudaMemcpyToSymbol(tau_d, &tau, sizeof(float), 0, cudaMemcpyHostToDevice));
 	cudaErrorCheck(cudaMemcpyToSymbol(wall_velocity_d, wall_velocity, D_LBM*sizeof(float), 0, cudaMemcpyHostToDevice));
 
-//	cudaErrorCheck(cudaMemcpyToSymbol(collide_field_d, collide_field_dd, sizeof(*collide_field_dd), 0, cudaMemcpyHostToDevice));
-//	cudaErrorCheck(cudaMemcpyToSymbol(stream_field_d, stream_field_dd, sizeof(*stream_field_dd), 0, cudaMemcpyHostToDevice));
+	cudaErrorCheck(cudaMemcpyToSymbol(collide_field_d, collide_field_dd, sizeof(*collide_field_dd), 0, cudaMemcpyHostToDevice));
+	cudaErrorCheck(cudaMemcpyToSymbol(stream_field_d, stream_field_dd, sizeof(*stream_field_dd), 0, cudaMemcpyHostToDevice));
 
 	//define grid structure
 	//NOTE:redundant threads for boundary cells are not accounted for
@@ -433,19 +433,25 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	mlups_time = clock();
 
 	//perform streaming
-	DoStreaming<<<grid,block>>>(*stream_field_dd, *collide_field_dd, *flag_field_d);
+//	DoStreaming<<<grid,block>>>(*flag_field_d);
+//	cudaErrorCheck(cudaPeekAtLastError());
+//	cudaErrorCheck(cudaThreadSynchronize());
+
+	StreamCollideTreat<<<grid,block>>>(*flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
 	cudaErrorCheck(cudaThreadSynchronize());
 
 	/* Perform the swapping of collide and stream fields */
-	swap=*collide_field_dd; *collide_field_dd=*stream_field_dd; *stream_field_dd=swap;
+//	swap=*collide_field_dd; *collide_field_dd=*stream_field_dd; *stream_field_dd=swap;
+	DoSwap<<<grid,block>>>();
+	cudaErrorCheck(cudaThreadSynchronize());
 
 	//perform collision
-	DoCollision<<<grid,block>>>(*collide_field_dd, *flag_field_d);
+	DoCollision<<<grid,block>>>(*flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
 	cudaErrorCheck(cudaThreadSynchronize());
 
-	TreatBoundary<<<grid,block>>>(*collide_field_dd, *flag_field_d);
+	TreatBoundary<<<grid,block>>>(*flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
 	cudaErrorCheck(cudaThreadSynchronize());
 
@@ -457,8 +463,8 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 
 	//TODO:do we need to copy it every time?
 	//copy data back to host
-//	cudaErrorCheck(cudaMemcpyFromSymbol(collide_field_dd, collide_field_d, sizeof(*collide_field_dd), 0, cudaMemcpyDeviceToHost));
-//	cudaErrorCheck(cudaMemcpyFromSymbol(stream_field_dd, stream_field_d, sizeof(*stream_field_dd), 0, cudaMemcpyDeviceToHost));
+	cudaErrorCheck(cudaMemcpyFromSymbol(collide_field_dd, collide_field_d, sizeof(*collide_field_dd), 0, cudaMemcpyDeviceToHost));
+	cudaErrorCheck(cudaMemcpyFromSymbol(stream_field_dd, stream_field_d, sizeof(*stream_field_dd), 0, cudaMemcpyDeviceToHost));
 
 	cudaErrorCheck(cudaMemcpy(collide_field, *collide_field_dd, computational_field_size, cudaMemcpyDeviceToHost));
 	cudaErrorCheck(cudaMemcpy(stream_field, *stream_field_dd, computational_field_size, cudaMemcpyDeviceToHost));
