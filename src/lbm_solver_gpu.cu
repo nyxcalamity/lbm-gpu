@@ -3,15 +3,16 @@
 
 #include "lbm_solver_gpu.h"
 #include "lbm_model.h"
-#include "utils_gpu.h"
+#include "lbm_model_gpu.cuh"
 #include "utils.h"
+#include "utils_gpu.h"
 #include "cell_computation_gpu.cuh"
-#include "boundary.h"
 
 
 __constant__ float tau_d, wall_velocity_d[D_LBM];
 __constant__ int xlength_d, num_cells_d;
 __device__ float *stream_field_d, *collide_field_d;
+
 
 /**
  * Computes the post-collision distribution functions according to the BGK update rule and
@@ -37,19 +38,18 @@ __device__ void ComputePostCollisionDistributionsGpu(float *current_cell, float 
 	current_cell[16]=current_cell[16]-(current_cell[16]-feq[16])/tau_d;
 	current_cell[17]=current_cell[17]-(current_cell[17]-feq[17])/tau_d;
 	current_cell[18]=current_cell[18]-(current_cell[18]-feq[18])/tau_d;
-	/* TODO:Probability distribution function can not be less than 0 */
 }
 
 
-//__device__ void DoStreaming(int *flag_field_d, int x, int y, int z){
-__device__ void DoStreaming(int *flag_field_d, int x, int y, int z){
-//	int x = threadIdx.x+blockIdx.x*blockDim.x;
-//	int y = threadIdx.y+blockIdx.y*blockDim.y;
-//	int z = threadIdx.z+blockIdx.z*blockDim.z;
+//__device__ void DoStreaming(int x, int y, int z){
+__global__ void DoStreaming(){
+	int x = threadIdx.x+blockIdx.x*blockDim.x;
+	int y = threadIdx.y+blockIdx.y*blockDim.y;
+	int z = threadIdx.z+blockIdx.z*blockDim.z;
 	int step=xlength_d+2, idx=x+y*step+z*step*step, nx, ny, nz;
 
 	//check that indices are within the bounds since there could be more threads than needed
-	if (idx<num_cells_d && flag_field_d[idx]==FLUID){
+	if (0<x && x<(step-1) && 0<y && y<(step-1) && 0<z && z<(step-1)){
 		nx=x-LATTICE_VELOCITIES_D[0][0];
 		ny=y-LATTICE_VELOCITIES_D[0][1];
 		nz=z-LATTICE_VELOCITIES_D[0][2];
@@ -129,71 +129,30 @@ __device__ void DoStreaming(int *flag_field_d, int x, int y, int z){
 	}
 }
 
-
-//__device__ void DoCollision(int *flag_field_d, int x, int y, int z){
-__global__ void DoCollision(int *flag_field_d){
+/*
+ * Performs collision computation.
+ */
+//__device__ void DoCollision(int x, int y, int z){
+__global__ void DoCollision(){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
 	int y = threadIdx.y+blockIdx.y*blockDim.y;
 	int z = threadIdx.z+blockIdx.z*blockDim.z;
-	//	__shared__ float collide_field_s[BLOCK_SIZE*BLOCK_SIZE*BLOCK_SIZE*Q_LBM];
-	//	int idx_block = threadIdx.x+threadIdx.y*blockDim.x+threadIdx.z*blockDim.x*blockDim.y;
 	int step=xlength_d+2, idx=x+y*step+z*step*step;
 	float density, velocity[D_LBM], feq[Q_LBM], *current_cell_s;
 
 	//check that indices are within the bounds since there could be more threads than needed
 	if (0<x && x<(step-1) && 0<y && y<(step-1) && 0<z && z<(step-1)){
-		//copy current cell values into shared memory
-//		collide_field_s[Q_LBM*idx_block]=collide_field_d[Q_LBM*idx];
-//		collide_field_s[Q_LBM*idx_block+1]=collide_field_d[Q_LBM*idx+1];
-//		collide_field_s[Q_LBM*idx_block+2]=collide_field_d[Q_LBM*idx+2];
-//		collide_field_s[Q_LBM*idx_block+3]=collide_field_d[Q_LBM*idx+3];
-//		collide_field_s[Q_LBM*idx_block+4]=collide_field_d[Q_LBM*idx+4];
-//		collide_field_s[Q_LBM*idx_block+5]=collide_field_d[Q_LBM*idx+5];
-//		collide_field_s[Q_LBM*idx_block+6]=collide_field_d[Q_LBM*idx+6];
-//		collide_field_s[Q_LBM*idx_block+7]=collide_field_d[Q_LBM*idx+7];
-//		collide_field_s[Q_LBM*idx_block+8]=collide_field_d[Q_LBM*idx+8];
-//		collide_field_s[Q_LBM*idx_block+9]=collide_field_d[Q_LBM*idx+9];
-//		collide_field_s[Q_LBM*idx_block+10]=collide_field_d[Q_LBM*idx+10];
-//		collide_field_s[Q_LBM*idx_block+11]=collide_field_d[Q_LBM*idx+11];
-//		collide_field_s[Q_LBM*idx_block+12]=collide_field_d[Q_LBM*idx+12];
-//		collide_field_s[Q_LBM*idx_block+13]=collide_field_d[Q_LBM*idx+13];
-//		collide_field_s[Q_LBM*idx_block+14]=collide_field_d[Q_LBM*idx+14];
-//		collide_field_s[Q_LBM*idx_block+15]=collide_field_d[Q_LBM*idx+15];
-//		collide_field_s[Q_LBM*idx_block+16]=collide_field_d[Q_LBM*idx+16];
-//		collide_field_s[Q_LBM*idx_block+17]=collide_field_d[Q_LBM*idx+17];
-//		collide_field_s[Q_LBM*idx_block+18]=collide_field_d[Q_LBM*idx+18];
-
-//		current_cell_s = &collide_field_s[Q_LBM*idx_block];
 		current_cell_s=&collide_field_d[Q_LBM*idx];
 		ComputeDensityGpu(current_cell_s,&density);
 		ComputeVelocityGpu(current_cell_s,&density,velocity);
 		ComputeFeqGpu(&density,velocity,feq);
 		ComputePostCollisionDistributionsGpu(current_cell_s,feq);
-
-		//copy data back
-//		collide_field_d[Q_LBM*idx]=collide_field_s[Q_LBM*idx_block];
-//		collide_field_d[Q_LBM*idx+1]=collide_field_s[Q_LBM*idx_block+1];
-//		collide_field_d[Q_LBM*idx+2]=collide_field_s[Q_LBM*idx_block+2];
-//		collide_field_d[Q_LBM*idx+3]=collide_field_s[Q_LBM*idx_block+3];
-//		collide_field_d[Q_LBM*idx+4]=collide_field_s[Q_LBM*idx_block+4];
-//		collide_field_d[Q_LBM*idx+5]=collide_field_s[Q_LBM*idx_block+5];
-//		collide_field_d[Q_LBM*idx+6]=collide_field_s[Q_LBM*idx_block+6];
-//		collide_field_d[Q_LBM*idx+7]=collide_field_s[Q_LBM*idx_block+7];
-//		collide_field_d[Q_LBM*idx+8]=collide_field_s[Q_LBM*idx_block+8];
-//		collide_field_d[Q_LBM*idx+9]=collide_field_s[Q_LBM*idx_block+9];
-//		collide_field_d[Q_LBM*idx+10]=collide_field_s[Q_LBM*idx_block+10];
-//		collide_field_d[Q_LBM*idx+11]=collide_field_s[Q_LBM*idx_block+11];
-//		collide_field_d[Q_LBM*idx+12]=collide_field_s[Q_LBM*idx_block+12];
-//		collide_field_d[Q_LBM*idx+13]=collide_field_s[Q_LBM*idx_block+13];
-//		collide_field_d[Q_LBM*idx+14]=collide_field_s[Q_LBM*idx_block+14];
-//		collide_field_d[Q_LBM*idx+15]=collide_field_s[Q_LBM*idx_block+15];
-//		collide_field_d[Q_LBM*idx+16]=collide_field_s[Q_LBM*idx_block+16];
-//		collide_field_d[Q_LBM*idx+17]=collide_field_s[Q_LBM*idx_block+17];
-//		collide_field_d[Q_LBM*idx+18]=collide_field_s[Q_LBM*idx_block+18];
 	}
 }
 
-
+/*
+ * Computes proper boundary values.
+ */
 //__device__ void TreatBoundary(int *flag_field_d, int x, int y, int z){
 __global__ void TreatBoundary(int *flag_field_d){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
@@ -263,36 +222,36 @@ __global__ void TreatBoundary(int *flag_field_d){
 		if( boundary_side==LEFT_BOUNDARY || boundary_side==RIGHT_BOUNDARY ||
 				boundary_side==BOTTOM_BOUNDARY ||
 				boundary_side==BACK_BOUNDARY || boundary_side==FRONT_BOUNDARY) {
-			i = treat_boundary_indeces[boundary_idx][0];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][0];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
 			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
-			i = treat_boundary_indeces[boundary_idx][1];
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][1];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
 			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
-			i = treat_boundary_indeces[boundary_idx][2];
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][2];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
 			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
-			i = treat_boundary_indeces[boundary_idx][3];
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][3];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
 			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
-			i = treat_boundary_indeces[boundary_idx][4];
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][4];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
 			collide_field_d[Q_LBM*(x+y*step+z*step*step)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)];
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)];
 		} else if (boundary_side == LEFT_BOTTOM_EDGE || boundary_side == RIGHT_BOTTOM_EDGE ||
 				boundary_side == BACK_BOTTOM_EDGE || boundary_side == FRONT_BOTTOM_EDGE ||
 				boundary_side == LEFT_BACK_EDGE || boundary_side == LEFT_FRONT_EDGE ||
@@ -301,7 +260,7 @@ __global__ void TreatBoundary(int *flag_field_d){
 			ny=y+LATTICE_VELOCITIES_D[boundary_idx][1];
 			nz=z+LATTICE_VELOCITIES_D[boundary_idx][2];
 			collide_field_d[Q_LBM*(x+y*step+z*step*step)+boundary_idx]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(boundary_idx)];
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(boundary_idx)];
 		} else if(boundary_side == LEFT_UPPER_EDGE || boundary_side == RIGHT_UPPER_EDGE ||
 				boundary_side == BACK_UPPER_EDGE || boundary_side == FRONT_UPPER_EDGE) {
 			i = boundary_idx;
@@ -316,10 +275,10 @@ __global__ void TreatBoundary(int *flag_field_d){
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
 			/* Assign the boudary cell value */
 			collide_field_d[Q_LBM*(idx)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
 		} else if(boundary_side == TOP_BOUNDARY) {
-			i = treat_boundary_indeces[boundary_idx][0];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][0];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
@@ -328,9 +287,9 @@ __global__ void TreatBoundary(int *flag_field_d){
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
 			collide_field_d[Q_LBM*(idx)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
-			i = treat_boundary_indeces[boundary_idx][1];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][1];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
@@ -339,9 +298,9 @@ __global__ void TreatBoundary(int *flag_field_d){
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
 			collide_field_d[Q_LBM*(idx)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
-			i = treat_boundary_indeces[boundary_idx][2];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][2];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
@@ -350,9 +309,9 @@ __global__ void TreatBoundary(int *flag_field_d){
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
 			collide_field_d[Q_LBM*(idx)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
-			i = treat_boundary_indeces[boundary_idx][3];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][3];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
@@ -361,9 +320,9 @@ __global__ void TreatBoundary(int *flag_field_d){
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
 			collide_field_d[Q_LBM*(idx)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
-			i = treat_boundary_indeces[boundary_idx][4];
+			i = TREAT_BOUNDARY_INDECES[boundary_idx][4];
 			nx=x+LATTICE_VELOCITIES_D[i][0];
 			ny=y+LATTICE_VELOCITIES_D[i][1];
 			nz=z+LATTICE_VELOCITIES_D[i][2];
@@ -372,51 +331,45 @@ __global__ void TreatBoundary(int *flag_field_d){
 					LATTICE_VELOCITIES_D[i][1]*wall_velocity_d[1]+
 					LATTICE_VELOCITIES_D[i][2]*wall_velocity_d[2];
 			collide_field_d[Q_LBM*(idx)+i]=
-					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+inv2(i)]+
+					collide_field_d[Q_LBM*(nx+ny*step+nz*step*step)+InvGpu(i)]+
 					2*LATTICE_WEIGHTS_D[i]*density*C_S_POW2_INV*dot_prod;
 		}
 	}
 }
 
+//__device__ void DoSwap(){
 __global__ void DoSwap(){
-	int x = threadIdx.x+blockIdx.x*blockDim.x;
-	int y = threadIdx.y+blockIdx.y*blockDim.y;
-	int z = threadIdx.z+blockIdx.z*blockDim.z;
-    int step=xlength_d+2, idx=x+y*step+z*step*step;
-    float *swap = NULL;
-	if(idx==0) {
-		swap=collide_field_d; collide_field_d=stream_field_d; stream_field_d=swap;
-	}
+	float *swap=collide_field_d; collide_field_d=stream_field_d; stream_field_d=swap;
 }
 
 /**
  * Performs streaming, collision and treatment step.
  */
-__global__ void StreamCollideTreat(int *flag_field_d){
-	int x = threadIdx.x+blockIdx.x*blockDim.x;
-	int y = threadIdx.y+blockIdx.y*blockDim.y;
-	int z = threadIdx.z+blockIdx.z*blockDim.z;
-
-	DoStreaming(flag_field_d, x, y, z);
-	__syncthreads();
-//	DoSwap(x,y,z);
+//__global__ void StreamCollideTreat(int *flag_field_d){
+//	int x = threadIdx.x+blockIdx.x*blockDim.x;
+//	int y = threadIdx.y+blockIdx.y*blockDim.y;
+//	int z = threadIdx.z+blockIdx.z*blockDim.z;
+//	int step=xlength_d+2, idx=x+y*step+z*step*step;
+//
+//	DoStreaming(flag_field_d, x, y, z);
+//	__syncthreads();
+//	if(idx == 0)
+//		DoSwap();
 //	__syncthreads();
 //	DoCollision(flag_field_d, x, y, z);
-//	__syncthreads();
-//	TreatBoundary(flag_field_d, x, y, z);
-
-}
+////	__syncthreads();
+////	TreatBoundary(flag_field_d, x, y, z);
+//}
 
 
 void DoIteration(float *collide_field, float *stream_field, int *flag_field, float tau,
 		float *wall_velocity, int xlength, float **collide_field_dd, float **stream_field_dd,
 		int **flag_field_d, float *mlups_sum){
 	int num_cells = pow(xlength+2, D_LBM);
-	float *swap=NULL;
 	size_t computational_field_size = Q_LBM*num_cells*sizeof(float);
 	clock_t mlups_time;
 
-	//initialize constant data
+	/* initialize constant data */
 	cudaErrorCheck(cudaMemcpyToSymbol(xlength_d, &xlength, sizeof(int), 0, cudaMemcpyHostToDevice));
 	cudaErrorCheck(cudaMemcpyToSymbol(num_cells_d, &num_cells, sizeof(int), 0, cudaMemcpyHostToDevice));
 	cudaErrorCheck(cudaMemcpyToSymbol(tau_d, &tau, sizeof(float), 0, cudaMemcpyHostToDevice));
@@ -425,35 +378,32 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	cudaErrorCheck(cudaMemcpyToSymbol(collide_field_d, collide_field_dd, sizeof(*collide_field_dd), 0, cudaMemcpyHostToDevice));
 	cudaErrorCheck(cudaMemcpyToSymbol(stream_field_d, stream_field_dd, sizeof(*stream_field_dd), 0, cudaMemcpyHostToDevice));
 
-	//define grid structure
-	//NOTE:redundant threads for boundary cells are not accounted for
+	/* define grid structure */
+	/* NOTE:redundant threads for boundary cells are not accounted for */
 	dim3 block(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 	dim3 grid((xlength+2+block.x-1)/block.x, (xlength+2+block.y-1)/block.y, (xlength+2+block.z-1)/block.z);
 
 	mlups_time = clock();
 
-	//perform streaming
-//	DoStreaming<<<grid,block>>>(*flag_field_d);
-//	cudaErrorCheck(cudaPeekAtLastError());
-//	cudaErrorCheck(cudaThreadSynchronize());
-
-	StreamCollideTreat<<<grid,block>>>(*flag_field_d);
-	cudaErrorCheck(cudaPeekAtLastError());
+	/* perform streaming */
+//	StreamCollideTreat<<<grid,block>>>(*flag_field_d);
+	DoStreaming<<<grid,block>>>();
 	cudaErrorCheck(cudaThreadSynchronize());
+	cudaErrorCheck(cudaPeekAtLastError());
 
 	/* Perform the swapping of collide and stream fields */
-//	swap=*collide_field_dd; *collide_field_dd=*stream_field_dd; *stream_field_dd=swap;
-	DoSwap<<<grid,block>>>();
+//	float *swap=*collide_field_dd; *collide_field_dd=*stream_field_dd; *stream_field_dd=swap;
+	DoSwap<<<1,1>>>();
 	cudaErrorCheck(cudaThreadSynchronize());
-
-	//perform collision
-	DoCollision<<<grid,block>>>(*flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
+
+	/* perform collision */
+	DoCollision<<<grid,block>>>();
 	cudaErrorCheck(cudaThreadSynchronize());
+	cudaErrorCheck(cudaPeekAtLastError());
 
 	TreatBoundary<<<grid,block>>>(*flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
-	cudaErrorCheck(cudaThreadSynchronize());
 
 	mlups_time = clock()-mlups_time;
 
@@ -461,11 +411,9 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	if(VERBOSE)
 		printf("MLUPS: %f\n", num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC));
 
-	//TODO:do we need to copy it every time?
-	//copy data back to host
+	/* copy data back to host */
 	cudaErrorCheck(cudaMemcpyFromSymbol(collide_field_dd, collide_field_d, sizeof(*collide_field_dd), 0, cudaMemcpyDeviceToHost));
 	cudaErrorCheck(cudaMemcpyFromSymbol(stream_field_dd, stream_field_d, sizeof(*stream_field_dd), 0, cudaMemcpyDeviceToHost));
-
 	cudaErrorCheck(cudaMemcpy(collide_field, *collide_field_dd, computational_field_size, cudaMemcpyDeviceToHost));
 	cudaErrorCheck(cudaMemcpy(stream_field, *stream_field_dd, computational_field_size, cudaMemcpyDeviceToHost));
 }

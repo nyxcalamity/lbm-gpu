@@ -24,18 +24,16 @@ int main(int argc, char *argv[]) {
 	clock_t mlups_time;
 	size_t field_size;
 
-	//process parameters
+	/* process parameters */
 	ReadParameters(&xlength, &tau, wall_velocity, &timesteps, &timesteps_per_plotting, argc, argv,
 			&gpu_enabled);
 
-	//check if provided parameters are legitimate
+	/* check if provided parameters are legitimate */
 	ValidateModel(wall_velocity, xlength, tau);
 
-	//pre-computing constants
+	/* initializing fields */
 	num_cells = pow(xlength + 2, D_LBM);
 	field_size = Q_LBM*num_cells*sizeof(float);
-
-	//initializing fields
 	collide_field = (float*) malloc(field_size);
 	stream_field = (float*) malloc(field_size);
 	flag_field = (int*) malloc(num_cells*sizeof(int));

@@ -5,6 +5,7 @@
 #include "cell_computation.h"
 #include "utils.h"
 
+
 void write_vtkHeader( FILE *fp, int xlength) {
     if( fp == NULL ){
         char szBuff[80];
@@ -134,6 +135,7 @@ void WriteField(const float * const field, const char * filename, unsigned int t
 		ERROR( szBuff );
 	}
 }
+
 
 void writeFlagField(const int * const flagField, const char * filename, const int xlength, const int rank) {
   int x,y,z, stepX=xlength+2,stepY=xlength+2,stepZ=xlength+2;

@@ -1,6 +1,7 @@
 #include "streaming.h"
 #include "lbm_model.h"
 
+
 void DoStreaming(float *collide_field, float *stream_field, int *flag_field, int xlength){
     int x,nx,y,ny,z,nz,i,step=xlength+2;
 

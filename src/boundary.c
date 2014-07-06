@@ -3,11 +3,7 @@
 #include "cell_computation.h"
 
 /**
- * Inverts the value of the lattice index in order to find the vector opposite to the provided one.
- * @param i
- *      index to inverse
- * @return 
- *      inversed index
+ * Finds an inverse probability distribution for the provided lattice index.
  */
 int inv(int i){
     return (Q_LBM-1)-i;

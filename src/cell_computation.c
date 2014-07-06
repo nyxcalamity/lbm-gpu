@@ -15,8 +15,7 @@ void ComputeDensity(const float *const current_cell, float *density){
 
 void ComputeVelocity(const float * const current_cell, const float * const density, float *velocity){
     int i;
-    /* NOTE:Indeces are hardcoded because of the possible performance gains and since 
-     * we do not have alternating D */
+    /* NOTE:Indexes are hard coded to improve program performance */
     velocity[0]=0;
     velocity[1]=0;
     velocity[2]=0;
@@ -36,7 +35,7 @@ void ComputeVelocity(const float * const current_cell, const float * const densi
 void ComputeFeq(const float * const density, const float * const velocity, float *feq){
     int i;
     float s1, s2, s3; /* summands */
-    /* NOTE:Indexes are hardcoded to improve program performance */
+    /* NOTE:Indexes are hard coded to improve program performance */
     for(i=0;i<Q_LBM;i++){
         s1 = LATTICE_VELOCITIES[i][0]*velocity[0]+LATTICE_VELOCITIES[i][1]*velocity[1]+
                 LATTICE_VELOCITIES[i][2]*velocity[2];

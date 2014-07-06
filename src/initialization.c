@@ -7,6 +7,7 @@
 #include "lbm_model.h"
 #include "utils.h"
 
+
 /**
  * Prints help message that includes program usage instructions and control flags.
  */
@@ -25,16 +26,16 @@ void PrintHelpMessage(){
 void ReadParameters(int *xlength, float *tau, float *velocity_wall, int *timesteps,
 		int *timesteps_per_plotting, int argc, char *argv[], int *gpu_enabled){
     float *velocity_wall_1, *velocity_wall_2, *velocity_wall_3;
-    //printing out help message
+    /* printing out help message */
     if(argc<3) PrintHelpMessage();
     if(!strcmp(argv[1], "-help") || !strcmp(argv[2], "-help")) PrintHelpMessage();
 
-    //checking parameters
+    /* checking parameters */
     if(access(argv[1], R_OK) != 0)
         ERROR("Provided configuration file path either doesn't exist or can not be read.");
     if(!strcmp(argv[2], "-gpu")) *gpu_enabled=1; else *gpu_enabled=0;
 
-    //reading parameters
+    /* reading parameters */
     READ_FLOAT(argv[1], *tau);
 
     velocity_wall_1=&velocity_wall[0];
@@ -129,7 +130,8 @@ void InitialiseFields(float *collide_field, float *stream_field, int *flag_field
                 
                 /* Initializing distributions for stream and collide fields */
                 for(i=0;i<Q_LBM;i++){
-                    /* NOTE:Stream field is initilized to 0s because that helps to 
+                    /*
+                     * NOTE:Stream field is initilized to 0s because that helps to
                      * track down mistakes and has no impact whatsoever to on the 
                      * computation further on.
                      */

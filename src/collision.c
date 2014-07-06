@@ -4,8 +4,9 @@
 #include "utils.h"
 
 
-/** Computes the post-collision distribution functions according to the BGK update rule and
- *  stores the results again at the same position.
+/**
+ * Computes the post-collision distribution functions according to the BGK update rule and
+ * stores the results again at the same position.
  */
 void ComputePostCollisionDistributions(float *current_cell, float tau, const float *const feq){
     int i;

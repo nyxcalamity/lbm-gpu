@@ -5,7 +5,7 @@ BUILD_DIR=build
 SOURCES=$(SRC_DIR)/initialization.c $(SRC_DIR)/visualization.c $(SRC_DIR)/boundary.c \
 	$(SRC_DIR)/collision.c $(SRC_DIR)/streaming.c $(SRC_DIR)/cell_computation.c \
 	$(SRC_DIR)/utils.c $(SRC_DIR)/main.c $(SRC_DIR)/lbm_model.c
-SOURCES_CU=$(SRC_DIR)/lbm_solver_gpu.cu $(SRC_DIR)/utils_gpu.cu $(SRC_DIR)/initialization_gpu.cu #$(SRC_DIR)/cell_computation_gpu.cu
+SOURCES_CU=$(SRC_DIR)/lbm_solver_gpu.cu $(SRC_DIR)/initialization_gpu.cu
 EXECUTABLE=$(BUILD_DIR)/lbm-sim
 #CUDA_LINKER=$(BUILD_DIR)/cuda-linker.o
 
