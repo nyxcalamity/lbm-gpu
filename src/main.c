@@ -73,6 +73,8 @@ int main(int argc, char *argv[]) {
 	printf("Average MLUPS: %f\n", mlups_sum/(t+1));
 
 	if (VERBOSE) {
+		if(gpu_enabled)
+	  	      CopyFieldsFromDevice(collide_field, stream_field, xlength, &collide_field_d, &stream_field_d);
 		WriteField(collide_field, "img/collide-field", 0, xlength, gpu_enabled);
 		writeFlagField(flag_field, "img/flag-field", xlength, gpu_enabled);
 	}

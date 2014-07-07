@@ -351,7 +351,6 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 		float *wall_velocity, int xlength, float **collide_field_dd, float **stream_field_dd,
 		int **flag_field_d, float *mlups_sum){
 	int num_cells = pow(xlength+2, D_LBM);
-	size_t computational_field_size = Q_LBM*num_cells*sizeof(float);
 	clock_t mlups_time;
 
 	/* initialize constant data */

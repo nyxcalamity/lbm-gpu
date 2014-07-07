@@ -1,7 +1,7 @@
 #ifndef _LBM_MODEL_H_
 #define _LBM_MODEL_H_
 
-#define VERBOSE 1
+#define VERBOSE 0
 #define MLUPS_MIN_CELLS 300
 #define MLUPS_EXPONENT 1000000
 /* simulation parameters */
