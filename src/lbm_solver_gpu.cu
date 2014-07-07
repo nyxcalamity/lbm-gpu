@@ -397,6 +397,4 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	/* copy data back to host */
 	cudaErrorCheck(cudaMemcpyFromSymbol(collide_field_dd, collide_field_d, sizeof(*collide_field_dd), 0, cudaMemcpyDeviceToHost));
 	cudaErrorCheck(cudaMemcpyFromSymbol(stream_field_dd, stream_field_d, sizeof(*stream_field_dd), 0, cudaMemcpyDeviceToHost));
-	cudaErrorCheck(cudaMemcpy(collide_field, *collide_field_dd, computational_field_size, cudaMemcpyDeviceToHost));
-	cudaErrorCheck(cudaMemcpy(stream_field, *stream_field_dd, computational_field_size, cudaMemcpyDeviceToHost));
 }

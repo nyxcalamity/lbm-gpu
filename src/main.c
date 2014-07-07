@@ -45,6 +45,10 @@ int main(int argc, char *argv[]) {
 		if (gpu_enabled){
 			DoIteration(collide_field, stream_field, flag_field, tau, wall_velocity, xlength,
 					&collide_field_d, &stream_field_d, &flag_field_d, &mlups_sum);
+			/* Copy data from devcice in memory only when we need VTK output */
+			if (!(t%timesteps_per_plotting))
+				CopyFieldsFromDevice(collide_field, stream_field, xlength,
+						&collide_field_d, &stream_field_d);
 		} else {
 			mlups_time = clock();
 			/* Copy pdfs from neighbouring cells into collide field */

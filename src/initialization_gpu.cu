@@ -23,3 +23,12 @@ void FreeDeviceFields(float **collide_field_d, float **stream_field_d,int **flag
 	cudaErrorCheck(cudaFree(*stream_field_d));
 	cudaErrorCheck(cudaFree(*flag_field_d));
 }
+
+
+void CopyFieldsFromDevice(float *collide_field, float *stream_field, int xlength,
+		float **collide_field_dd, float **stream_field_dd) {
+	int num_cells = pow(xlength+2, D_LBM);
+	size_t computational_field_size = Q_LBM*num_cells*sizeof(float);
+	cudaErrorCheck(cudaMemcpy(collide_field, *collide_field_dd, computational_field_size, cudaMemcpyDeviceToHost));
+	cudaErrorCheck(cudaMemcpy(stream_field, *stream_field_dd, computational_field_size, cudaMemcpyDeviceToHost));
+}
