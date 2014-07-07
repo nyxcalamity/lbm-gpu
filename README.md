@@ -8,20 +8,20 @@ The project is an open-source [GPGPU] implementation of [Lattice-Boltzmann Metho
 
 Technical details
 -----------------
-Due to a local nature of computations performed during lattice grid update the method is highly parallelizable and can be scaled to virtually the same amount of compute units as the number of cells being used for the domain. Since modern GPUs have thousands of execution cores and show a tendecny of increasing that number, they are the perfect candidate for LBM parallelized code to run on. This project utilizes [CUDA] platform due to the fact that comparing to it's competitor, [OpenCL], it has a wider functionality and higher data transfer rate with virtually the same computaitonal throughput. However CUDA comes with a cost of locking developers to use NVidia GPUs, which is irrelevant for the purposes of this project.
+Due to a local nature of computations performed during lattice grid update the method is highly parallelizable and can be scaled to virtually the same amount of compute units as the number of cells being used for the domain. Since modern GPUs have thousands of execution cores and number of cores is tending upwards, they are the perfect candidate for LBM parallelized code to run on. This project utilizes [CUDA] platform due to the fact that compared to it's competitor, [OpenCL], it has a wider functionality and higher data transfer rate with virtually the same computational throughput. However CUDA comes with a cost of locking developers to use NVidia GPUs, but that is irrelevant for the purposes of this project.
 
 
 Goals
 -----
-During the project implementation next goals were accounted for:
+During the project implementation the following goals were accounted for:
 - high performance and efficiency of LBM solver
 - high scalability of code to various NVidia GPU architectures
-- maintaiability and clarity of the code
+- maintainability and clarity of the code
 
 
 Technical Prerequisites
 -----------------------
-In case that the reader is not familiar with the GPGPU programming models or the innerworkings of GPU hardware it is highly recommended to skim through [NVidia programming guide] and [NVidia GPU architectures]. It is also recommended to have a general understanding of LBM solver principles.
+In case that the reader is not familiar with the GPGPU programming models or the inner workings of GPU hardware it is highly recommended to skim through [NVidia programming guide] and [NVidia GPU architectures]. It is also recommended to have a general understanding of LBM solver principles.
 
 
 Implementation
