@@ -40,15 +40,16 @@ __device__ void ComputePostCollisionDistributionsGpu(float *current_cell, float 
 	current_cell[18]=current_cell[18]-(current_cell[18]-feq[18])/tau_d;
 }
 
-
-//__device__ void DoStreaming(int x, int y, int z){
+/*
+ * Performs streaming on cells.
+ */
 __global__ void DoStreaming(){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
 	int y = threadIdx.y+blockIdx.y*blockDim.y;
 	int z = threadIdx.z+blockIdx.z*blockDim.z;
 	int step=xlength_d+2, idx=x+y*step+z*step*step, nx, ny, nz;
 
-	//check that indices are within the bounds since there could be more threads than needed
+	/* check that indices are within the bounds since there could be more threads than needed */
 	if (0<x && x<(step-1) && 0<y && y<(step-1) && 0<z && z<(step-1)){
 		nx=x-LATTICE_VELOCITIES_D[0][0];
 		ny=y-LATTICE_VELOCITIES_D[0][1];
@@ -129,10 +130,10 @@ __global__ void DoStreaming(){
 	}
 }
 
+
 /*
  * Performs collision computation.
  */
-//__device__ void DoCollision(int x, int y, int z){
 __global__ void DoCollision(){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
 	int y = threadIdx.y+blockIdx.y*blockDim.y;
@@ -140,7 +141,7 @@ __global__ void DoCollision(){
 	int step=xlength_d+2, idx=x+y*step+z*step*step;
 	float density, velocity[D_LBM], feq[Q_LBM], *current_cell_s;
 
-	//check that indices are within the bounds since there could be more threads than needed
+	/* check that indices are within the bounds since there could be more threads than needed */
 	if (0<x && x<(step-1) && 0<y && y<(step-1) && 0<z && z<(step-1)){
 		current_cell_s=&collide_field_d[Q_LBM*idx];
 		ComputeDensityGpu(current_cell_s,&density);
@@ -150,10 +151,10 @@ __global__ void DoCollision(){
 	}
 }
 
+
 /*
  * Computes proper boundary values.
  */
-//__device__ void TreatBoundary(int *flag_field_d, int x, int y, int z){
 __global__ void TreatBoundary(int *flag_field_d){
 	int x = threadIdx.x+blockIdx.x*blockDim.x;
 	int y = threadIdx.y+blockIdx.y*blockDim.y;
@@ -337,29 +338,13 @@ __global__ void TreatBoundary(int *flag_field_d){
 	}
 }
 
-//__device__ void DoSwap(){
+
+/*
+ * Performs pointer swap on GPU.
+ */
 __global__ void DoSwap(){
 	float *swap=collide_field_d; collide_field_d=stream_field_d; stream_field_d=swap;
 }
-
-/**
- * Performs streaming, collision and treatment step.
- */
-//__global__ void StreamCollideTreat(int *flag_field_d){
-//	int x = threadIdx.x+blockIdx.x*blockDim.x;
-//	int y = threadIdx.y+blockIdx.y*blockDim.y;
-//	int z = threadIdx.z+blockIdx.z*blockDim.z;
-//	int step=xlength_d+2, idx=x+y*step+z*step*step;
-//
-//	DoStreaming(flag_field_d, x, y, z);
-//	__syncthreads();
-//	if(idx == 0)
-//		DoSwap();
-//	__syncthreads();
-//	DoCollision(flag_field_d, x, y, z);
-////	__syncthreads();
-////	TreatBoundary(flag_field_d, x, y, z);
-//}
 
 
 void DoIteration(float *collide_field, float *stream_field, int *flag_field, float tau,
@@ -379,20 +364,17 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	cudaErrorCheck(cudaMemcpyToSymbol(stream_field_d, stream_field_dd, sizeof(*stream_field_dd), 0, cudaMemcpyHostToDevice));
 
 	/* define grid structure */
-	/* NOTE:redundant threads for boundary cells are not accounted for */
 	dim3 block(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 	dim3 grid((xlength+2+block.x-1)/block.x, (xlength+2+block.y-1)/block.y, (xlength+2+block.z-1)/block.z);
 
 	mlups_time = clock();
 
 	/* perform streaming */
-//	StreamCollideTreat<<<grid,block>>>(*flag_field_d);
 	DoStreaming<<<grid,block>>>();
 	cudaErrorCheck(cudaThreadSynchronize());
 	cudaErrorCheck(cudaPeekAtLastError());
 
 	/* Perform the swapping of collide and stream fields */
-//	float *swap=*collide_field_dd; *collide_field_dd=*stream_field_dd; *stream_field_dd=swap;
 	DoSwap<<<1,1>>>();
 	cudaErrorCheck(cudaThreadSynchronize());
 	cudaErrorCheck(cudaPeekAtLastError());
@@ -402,6 +384,7 @@ void DoIteration(float *collide_field, float *stream_field, int *flag_field, flo
 	cudaErrorCheck(cudaThreadSynchronize());
 	cudaErrorCheck(cudaPeekAtLastError());
 
+	/* perform boundary treatment */
 	TreatBoundary<<<grid,block>>>(*flag_field_d);
 	cudaErrorCheck(cudaPeekAtLastError());
 

@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 				printf("MLUPS: %f\n", num_cells/(MLUPS_EXPONENT*(float)mlups_time/CLOCKS_PER_SEC));
 		}
 		/* Print out vtk output if needed */
-		if (t % timesteps_per_plotting == 0)
+		if (!(t%timesteps_per_plotting))
 			WriteVtkOutput(collide_field, flag_field, "img/lbm-img", t, xlength);
 	}
 
